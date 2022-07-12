@@ -32,8 +32,8 @@ def before_request():
 def after_request(resp):
     if hasattr(g, 'user'):
         token = create_token(g.user)
-        print('resp', token)
-        # resp.headers['Authorization'] = token
+        # print('resp', token)
+        resp.headers['Authorization'] = token
     return resp
 
 
