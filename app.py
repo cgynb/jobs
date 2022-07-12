@@ -18,7 +18,7 @@ app.register_blueprint(user_bp)
 
 @app.before_request
 def before_request():
-    token, msg = validate_token(request.cookies.get('token'))
+    token, msg = validate_token(request.headers.get('Authorization'))
     # print('req', request.headers.get('Authorization'))
     if msg is None:
         try:
