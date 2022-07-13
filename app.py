@@ -19,7 +19,6 @@ app.register_blueprint(user_bp)
 @app.before_request
 def before_request():
     token, msg = validate_token(request.headers.get('Authorization'))
-    # print('req', request.headers.get('Authorization'))
     if msg is None:
         try:
             user = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
@@ -31,9 +30,9 @@ def before_request():
 @app.after_request
 def after_request(resp):
     if hasattr(g, 'user'):
-        token = create_token(g.user)
-        # print('resp', token)
-        resp.headers['Authorization'] = token
+        resp.headers['Authorization'] = create_token(g.user)
+        if hasattr(g, 'login') and g.login is True:
+            resp.headers['refresh token'] = create_token(g.user, refresh_token=True)
     return resp
 
 

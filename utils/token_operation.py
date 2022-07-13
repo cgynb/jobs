@@ -10,12 +10,12 @@ from jwt import exceptions
 import time
 
 
-def create_token(user):
+def create_token(user, refresh_token=True):
     headers = {
         "alg": "HS256",
         "typ": "JWT",
     }
-    exp = int(time.time() + 3600)
+    exp = int(time.time() + 3600) if refresh_token is False else int(time.time() + 3600 * 24 * 14)
     payload = {
         "name": user.username,
         "user_id": user.user_id,

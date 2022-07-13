@@ -1,5 +1,4 @@
 import string
-
 import sqlalchemy
 from flask import Blueprint, request, jsonify, g
 from flask.views import MethodView
@@ -9,6 +8,7 @@ import datetime
 import random
 from exts import db, mail
 from models import UserModel, CaptchaModel
+from utils.token_operation import validate_token
 
 bp = Blueprint('user', __name__, url_prefix='/api/v1/user')
 
@@ -22,7 +22,23 @@ def login():
         return jsonify({'code': 404, 'message': "there's no such user"})
     if check_password_hash(cur_user.password, password):
         g.user = cur_user
+        g.login = True
         return jsonify({'code': 200, 'message': 'success'})
+
+
+@bp.route('/refresh/', methods=['POST'])
+def refresh():
+    refresh_token = request.form.get('refresh_token')
+    token, msg = validate_token(refresh_token)
+    if msg is None:
+        try:
+            user = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
+            g.user = user
+        except Exception as e:
+            print(e)
+        return jsonify({'code': 200, 'message': 'success'})
+    else:
+        return jsonify({'code': 403, 'message': "your refresh token is wrong"})
 
 
 class CaptchaAPI(MethodView):
@@ -62,29 +78,6 @@ class CaptchaAPI(MethodView):
 
     def delete(self):
         pass
-
-
-# @bp.route('/captcha/', methods=['GET'])
-# def captcha():
-#     email = request.args.get('email')
-#     ret = ''.join((string.digits + string.ascii_letters)[random.randint(0, 61)] for _ in range(6))
-#     if email:
-#         c = CaptchaModel.query.filter(CaptchaModel.email == email).first()
-#         if c:
-#             c.captcha = ret
-#         else:
-#             c = CaptchaModel(email=email, captcha=ret)
-#             db.session.add(c)
-#         db.session.commit()
-#         message = Message(
-#             subject='求职',
-#             recipients=[email],
-#             body=f'验证码是：{ret}，请不要告诉他人',
-#         )
-#         mail.send(message)
-#         return jsonify({'code': 200, 'message': 'success', 'data': {'captcha': ret}})
-#     else:
-#         return jsonify({'code': 400, 'message': 'lose params'})
 
 
 class UserAPI(MethodView):
