@@ -15,14 +15,14 @@ def create_token(user):
         "alg": "HS256",
         "typ": "JWT",
     }
-    exp = int(time.time() + 3600 * 7)
+    exp = int(time.time() + 3600)
     payload = {
         "name": user.username,
         "user_id": user.user_id,
         "exp": exp,
         "iss": 'sbb'
     }
-    token = jwt.encode(payload=payload, key=current_app.config.get('SECRET_KEY'), algorithm='HS256',
+    token = jwt.encode(payload=payload, key=current_app.config.get('JWT_SECRET_KEY'), algorithm='HS256',
                        headers=headers)
     return token
 
@@ -31,7 +31,7 @@ def validate_token(token):
     payload = None
     msg = None
     try:
-        payload = jwt.decode(jwt=token, key=current_app.config.get('SECRET_KEY'), algorithms=['HS256'], issuer='cgy')
+        payload = jwt.decode(jwt=token, key=current_app.config.get('JWT_SECRET_KEY'), algorithms=['HS256'], issuer='sbb')
     except exceptions.ExpiredSignatureError:
         msg = 'token已失效'
     except jwt.DecodeError:

@@ -25,27 +25,66 @@ def login():
         return jsonify({'code': 200, 'message': 'success'})
 
 
-@bp.route('/captcha/', methods=['GET'])
-def captcha():
-    email = request.args.get('email')
-    ret = ''.join((string.digits + string.ascii_letters)[random.randint(0, 61)] for _ in range(6))
-    if email:
-        c = CaptchaModel.query.filter(CaptchaModel.email == email).first()
-        if c:
-            c.captcha = ret
+class CaptchaAPI(MethodView):
+    def get(self):
+        email = request.args.get('email')
+        ret = ''.join((string.digits + string.ascii_letters)[random.randint(0, 61)] for _ in range(6))
+        if email:
+            c = CaptchaModel.query.filter(CaptchaModel.email == email).first()
+            if c:
+                c.captcha = ret
+            else:
+                c = CaptchaModel(email=email, captcha=ret)
+                db.session.add(c)
+            db.session.commit()
+            message = Message(
+                subject='求职',
+                recipients=[email],
+                body=f'验证码是：{ret}，请不要告诉他人',
+            )
+            mail.send(message)
+            return jsonify({'code': 200, 'message': 'success'})
         else:
-            c = CaptchaModel(email=email, captcha=ret)
-            db.session.add(c)
-        db.session.commit()
-        message = Message(
-            subject='求职',
-            recipients=[email],
-            body=f'验证码是：{ret}，请不要告诉他人',
-        )
-        mail.send(message)
-        return jsonify({'code': 200, 'message': 'success', 'data': {'captcha': ret}})
-    else:
-        return jsonify({'code': 400, 'message': 'lose params'})
+            return jsonify({'code': 400, 'message': 'lose params'})
+
+    def post(self):
+        email = request.form.get('email')
+        c_str = request.form.get('captcha')
+        c_obj = CaptchaModel.query.filter(CaptchaModel.email == email).first()
+        if c_obj:
+            if c_obj.captcha == c_str:
+                return jsonify({'code': 200, 'message': 'success'})
+        return jsonify({'code': 400, 'message': "fail"})
+
+
+    def put(self):
+        pass
+
+    def delete(self):
+        pass
+
+
+# @bp.route('/captcha/', methods=['GET'])
+# def captcha():
+#     email = request.args.get('email')
+#     ret = ''.join((string.digits + string.ascii_letters)[random.randint(0, 61)] for _ in range(6))
+#     if email:
+#         c = CaptchaModel.query.filter(CaptchaModel.email == email).first()
+#         if c:
+#             c.captcha = ret
+#         else:
+#             c = CaptchaModel(email=email, captcha=ret)
+#             db.session.add(c)
+#         db.session.commit()
+#         message = Message(
+#             subject='求职',
+#             recipients=[email],
+#             body=f'验证码是：{ret}，请不要告诉他人',
+#         )
+#         mail.send(message)
+#         return jsonify({'code': 200, 'message': 'success', 'data': {'captcha': ret}})
+#     else:
+#         return jsonify({'code': 400, 'message': 'lose params'})
 
 
 class UserAPI(MethodView):
@@ -81,4 +120,5 @@ class UserAPI(MethodView):
 
 
 bp.add_url_rule('/', view_func=UserAPI.as_view('user'))
+bp.add_url_rule('/captcha/', view_func=CaptchaAPI.as_view('captcha'))
 
