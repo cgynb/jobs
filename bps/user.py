@@ -24,6 +24,8 @@ def login():
         g.user = cur_user
         g.login = True
         return jsonify({'code': 200, 'message': 'success'})
+    else:
+        return jsonify({'code': 403, 'message': 'your password is wrong'})
 
 
 @bp.route('/refresh/', methods=['POST'])

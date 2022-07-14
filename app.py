@@ -3,11 +3,11 @@ from bps import user_bp
 from utils.token_operation import validate_token, create_token
 from exts import db, migrate, mail
 from models import UserModel
-import config
+import toml
 
 
 app = Flask(__name__)
-app.config.from_object(config)
+app.config.from_file('config.toml', load=toml.load)
 
 db.init_app(app)
 migrate.init_app(app, db)
@@ -19,6 +19,7 @@ app.register_blueprint(user_bp)
 @app.before_request
 def before_request():
     token, msg = validate_token(request.headers.get('Authorization'))
+    print(token, msg, request.headers.get('Authorization'))
     if msg is None:
         try:
             user = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
@@ -33,6 +34,7 @@ def after_request(resp):
         resp.headers['Authorization'] = create_token(g.user)
         if hasattr(g, 'login') and g.login is True:
             resp.headers['refresh token'] = create_token(g.user, refresh_token=True)
+    print(resp.headers['Authorization'])
     return resp
 
 
