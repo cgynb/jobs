@@ -6,7 +6,7 @@ from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 import random
-from exts import db, mail
+from exts import db, mail, cors
 from models import UserModel, CaptchaModel
 from utils.token_operation import validate_token
 
