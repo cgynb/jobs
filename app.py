@@ -13,7 +13,7 @@ db.init_app(app)
 migrate.init_app(app, db)
 mail.init_app(app)
 cors.init_app(app, supports_credentials=True, expose_headers=['Authorization', 'refresh-token'])
-mongo.init_app(app, 'mongodb://localhost:27017/jobs')
+mongo.init_app(app)
 
 app.register_blueprint(user_bp)
 app.register_blueprint(article_bp)

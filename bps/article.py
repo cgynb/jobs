@@ -10,7 +10,7 @@ bp = Blueprint('article', __name__, url_prefix='/api/v1/article')
 class ArticleAPI(MethodView):
     def get(self):
         # ids为样例，gbq给的接口 (传入user_id进行分析) -> 给到文章id的列表
-        ids: list = ['62d18f81b54eb0964c04918e', '62d18f81b54eb0964c049190']
+        ids: list = ['62d18ecc7d05f82a95fd9720', '62d18ecc7d05f82a95fd9722']
 
         articles: list = []
         search_condition: list = [{'_id': ObjectId(i)} for i in ids]
@@ -20,7 +20,8 @@ class ArticleAPI(MethodView):
                 a['_id'] = str(a['_id'])
                 articles.append(a)
             return jsonify({'code': 200, 'message': 'success', 'data': articles})
-        except PyMongoError:
+        except PyMongoError as e:
+            print(e)
             return jsonify({'code': 500, 'message': 'database error'})
 
 
