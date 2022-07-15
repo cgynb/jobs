@@ -1,12 +1,12 @@
 import string
-import sqlalchemy
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from flask import Blueprint, request, jsonify, g
 from flask.views import MethodView
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
 import datetime
 import random
-from exts import db, mail, cors
+from exts import db, mail
 from models import UserModel, CaptchaModel
 from utils.token_operation import validate_token
 
@@ -23,7 +23,12 @@ def login():
     if check_password_hash(cur_user.password, password):
         g.user = cur_user
         g.login = True
-        return jsonify({'code': 200, 'message': 'success'})
+        user_dict = g.user.__dict__
+        user_dict.pop('_sa_instance_state')
+        user_dict.pop('id')
+        user_dict.pop('password')
+        # print(user_dict)
+        return jsonify({'code': 200, 'message': 'success', 'data': user_dict})
     else:
         return jsonify({'code': 403, 'message': 'your password is wrong'})
 
@@ -101,8 +106,10 @@ class UserAPI(MethodView):
                 cur_user = UserModel(user_id=user_id, username=username, password=password, email=email)
                 db.session.add(cur_user)
                 db.session.commit()
-            except sqlalchemy.exc.IntegrityError:
+            except IntegrityError:
                 return jsonify({'code': 403, 'message': 'the email has been registered'})
+            except SQLAlchemyError:
+                return jsonify({'code': 500, 'message': 'database error'})
             return jsonify({'code': 200, 'message': 'success'})
         else:
             return jsonify({'code': 400, 'message': 'your captcha is wrong'})

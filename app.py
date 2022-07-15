@@ -1,7 +1,7 @@
 from flask import Flask, g, request
-from bps import user_bp
+from bps import user_bp, article_bp
 from utils.token_operation import validate_token, create_token
-from exts import db, migrate, mail, cors
+from exts import db, migrate, mail, cors, mongo
 from models import UserModel
 import toml
 
@@ -12,9 +12,11 @@ app.config.from_file('config.toml', load=toml.load)
 db.init_app(app)
 migrate.init_app(app, db)
 mail.init_app(app)
-cors.init_app(app)
+cors.init_app(app, supports_credentials=True, expose_headers=['Authorization', 'refresh-token'])
+mongo.init_app(app, 'mongodb://localhost:27017/jobs')
 
 app.register_blueprint(user_bp)
+app.register_blueprint(article_bp)
 
 
 @app.before_request
@@ -34,10 +36,10 @@ def after_request(resp):
     if hasattr(g, 'user'):
         resp.headers['Authorization'] = create_token(g.user)
         if hasattr(g, 'login') and g.login is True:
-            resp.headers['refresh token'] = create_token(g.user, refresh_token=True)
+            resp.headers['refresh-token'] = create_token(g.user, refresh_token=True)
     # print(resp.headers['Authorization'])
     return resp
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run('0.0.0.0')
