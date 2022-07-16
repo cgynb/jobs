@@ -1,16 +1,18 @@
 from flask import Flask, g, request
-from bps import user_bp, article_bp
+from bps import user_bp, article_bp, admin_bp
 from utils.token_operation import validate_token, create_token
 from exts import db, migrate, mail, cors, mongo
 from models import UserModel
 import toml
 import logging
-
+from utils.role_limit import login_required
 app = Flask(__name__)
 app.config.from_file('config.toml', load=toml.load)
 
 handler = logging.FileHandler('app.log', encoding='UTF-8')
-logging_format = logging.Formatter('%(asctime)s %(levelname)s %(filename)s %(funcName)s %(lineno)s \n\t%(message)s')
+logging_format = logging.Formatter('\n===============================================================================\n'
+                                   '%(asctime)s - %(levelname)s - %(filename)s - '
+                                   '%(funcName)s - %(lineno)s - (ip: %(message)s)')
 handler.setFormatter(logging_format)
 app.logger.addHandler(handler)
 
@@ -22,6 +24,7 @@ mongo.init_app(app)
 
 app.register_blueprint(user_bp)
 app.register_blueprint(article_bp)
+app.register_blueprint(admin_bp)
 
 
 @app.before_request
@@ -44,6 +47,17 @@ def after_request(resp):
             resp.headers['refresh-token'] = create_token(g.user, refresh_token=True)
     # print(resp.headers['Authorization'])
     return resp
+
+
+@app.route('/')
+@login_required
+def test_view():
+    try:
+        1/0
+    except Exception as e:
+        from utils.log import Log
+        Log.exception(e)
+    return 'test'
 
 
 if __name__ == '__main__':

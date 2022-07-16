@@ -10,6 +10,7 @@ import random
 from exts import db, mail
 from models import UserModel, CaptchaModel
 from utils.token_operation import validate_token
+from utils.log import Log
 
 bp = Blueprint('user', __name__, url_prefix='/api/v1/user')
 
@@ -21,7 +22,7 @@ def login():
     try:
         cur_user = UserModel.query.filter(UserModel.username == username).first()
     except SQLAlchemyError as e:
-        current_app.logger.error(request.remote_addr + '  ' + str(e))
+        Log.error(e)
     else:
         if cur_user is None:
             return jsonify({'code': 404, 'message': "there's no such user"})
@@ -46,7 +47,7 @@ def refresh():
         try:
             user = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
         except SQLAlchemyError as e:
-            current_app.logger.error(request.remote_addr + '  ' + str(e))
+            Log.error(e)
         else:
             g.user = user
         return jsonify({'code': 200, 'message': 'success'})
@@ -75,10 +76,10 @@ class CaptchaAPI(MethodView):
                 )
                 mail.send(message)
             except SMTPException as e:
-                print(e)
-                return jsonify({'code': 500, 'message': 'captcha error'})
+                Log.error(e)
+                return jsonify({'code': 500, 'message': 'smtp error'})
             except SQLAlchemyError as e:
-                print(e)
+                Log.error(e)
                 return jsonify({'code': 500, 'message': 'database error'})
             else:
                 return jsonify({'code': 200, 'message': 'success'})
@@ -91,7 +92,7 @@ class CaptchaAPI(MethodView):
         try:
             c_obj = CaptchaModel.query.filter(CaptchaModel.email == email).first()
         except SQLAlchemyError as e:
-            print(e)
+            Log.error(e)
         else:
             if c_obj:
                 if c_obj.captcha == c_str:
@@ -115,9 +116,10 @@ class UserAPI(MethodView):
                 cur_user = UserModel(user_id=user_id, username=username, password=password, email=email)
                 db.session.add(cur_user)
                 db.session.commit()
-            except IntegrityError:
+            except IntegrityError:  # 这里不打日志，因为可以明确这是由于unique字段重复导致
                 return jsonify({'code': 403, 'message': 'the email has been registered'})
-            except SQLAlchemyError:
+            except SQLAlchemyError as e:
+                Log.error(e)
                 return jsonify({'code': 500, 'message': 'database error'})
             return jsonify({'code': 200, 'message': 'success'})
         else:
@@ -139,7 +141,7 @@ class UserAPI(MethodView):
             elif c_obj is None:
                 return jsonify({'code': 400, 'message': "your captcha is wrong"})
         except SQLAlchemyError as e:
-            current_app.logger.error(request.remote_addr + '  ' + str(e))
+            Log.error(e)
 
 
 bp.add_url_rule('/', view_func=UserAPI.as_view('user'), methods=['POST', 'PUT'])

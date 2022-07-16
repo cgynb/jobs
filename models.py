@@ -16,3 +16,16 @@ class CaptchaModel(db.Model):
     email = db.Column(db.String(100), nullable=False, unique=True)
     captcha = db.Column(db.String(10), nullable=False)
 
+
+class LikeModel(db.Model):
+    __tablename__ = 'likes'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    article_id = db.Column(db.String(50), nullable=False)
+    user_id = db.Column(db.String(30), db.ForeignKey("user.user_id"), nullable=False)
+
+
+class CollectModel(db.Model):
+    __tablename__ = 'collect'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    article_id = db.Column(db.String(50), nullable=False)
+    user_id = db.Column(db.String(30), db.ForeignKey("user.user_id"), nullable=False)
