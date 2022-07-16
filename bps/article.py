@@ -1,8 +1,9 @@
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, current_app
 from flask.views import MethodView
 from exts import mongo
 from bson.objectid import ObjectId
 from pymongo.errors import PyMongoError
+
 
 bp = Blueprint('article', __name__, url_prefix='/api/v1/article')
 
@@ -21,7 +22,7 @@ class ArticleAPI(MethodView):
                 articles.append(a)
             return jsonify({'code': 200, 'message': 'success', 'data': articles})
         except PyMongoError as e:
-            print(e)
+            current_app.logger.error(request.remote_addr + '  ' + str(e))
             return jsonify({'code': 500, 'message': 'database error'})
 
 

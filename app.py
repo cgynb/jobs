@@ -4,10 +4,15 @@ from utils.token_operation import validate_token, create_token
 from exts import db, migrate, mail, cors, mongo
 from models import UserModel
 import toml
-
+import logging
 
 app = Flask(__name__)
 app.config.from_file('config.toml', load=toml.load)
+
+handler = logging.FileHandler('app.log', encoding='UTF-8')
+logging_format = logging.Formatter('%(asctime)s %(levelname)s %(filename)s %(funcName)s %(lineno)s \n\t%(message)s')
+handler.setFormatter(logging_format)
+app.logger.addHandler(handler)
 
 db.init_app(app)
 migrate.init_app(app, db)
