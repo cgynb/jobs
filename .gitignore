@@ -1,3 +1,4 @@
 config.toml
 app.log
 migrations
+.idea
