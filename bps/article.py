@@ -1,3 +1,5 @@
+import time
+
 from flask import Blueprint, request, jsonify, g, current_app
 from flask.views import MethodView
 from sqlalchemy import or_, and_
@@ -13,30 +15,89 @@ bp = Blueprint('article', __name__, url_prefix='/api/v1/article')
 
 
 class ArticleAPI(MethodView):
-    # @login_required
-    def get(self):
-        # TODO: ids为样例，gbq给的接口 (传入user_id进行分析) -> 给到文章id的列表
-        ids: list = ['62d3b144551ed4ee99d0e08a', '62d3b144551ed4ee99d0e08b']
-
-        articles: list = []
-        search_condition: list = [{'_id': ObjectId(i)} for i in ids]
+    def get(self):  # 1. article_id[必选] -> 文章信息         2. page[可选|None] type[可选|None] article_id[None] 返回文章列表
+        article_id = request.args.get('article_id')
+        page = request.args.get('page', default='1')
+        article_type = request.args.get('type')
         try:
-            for c in search_condition:
-                a: dict = mongo.db.article.find_one(c)
-                a['_id'] = str(a['_id'])
-                articles.append(a)
-            return jsonify({'code': 200, 'message': 'success', 'data': articles})
+            if article_id is None:
+                each_page = 10
+                total_article = mongo.db.article.count_documents({})
+                total_page = total_article // each_page + 1 if total_article % each_page else total_article // each_page
+                if article_type is None:
+                    condition = {}
+                else:
+                    condition = {'type': article_type}
+                articles = mongo.db.article.find(condition, {'content': 0, 'commend': 0}). \
+                    limit(each_page).skip((int(page) - 1) * 10)
+                article_lst = []
+                for a in articles:
+                    a['_id'] = str(a['_id'])
+                    article_lst.append(a)
+                return jsonify({'code': 200, 'message': 'success',
+                                'data': {'current_page': page, 'total_article': total_article,
+                                         'total_page': total_page, 'article': article_lst}})
+            else:
+                if ObjectId.is_valid(article_id):
+                    article = mongo.db.article.find_one({'_id': ObjectId(article_id)})
+                    article['_id'] = str(article['_id'])
+                    return jsonify({'code': 200, 'message': 'success', 'data': article})
+                else:
+                    return jsonify({'code': 400, 'message': 'article_id invalid'})
         except PyMongoError as e:
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
 
+    @login_required
     def post(self):
         article_id = request.form.get('article_id')
         user_id = g.user.user_id
-        commend = request.form.get('commend')
-        print(article_id, user_id, commend)
-
-        return jsonify({'code': 200, 'message': 'success'})
+        comment = request.form.get('comment', default=None)
+        comment_id = request.form.get('comment_id', default=None)
+        subcomment = request.form.get('subcomment', default=None)
+        if ObjectId.is_valid(article_id):
+            try:
+                article = mongo.db.article.find_one({'_id': ObjectId(article_id)}, {'comment': 1})
+                if article is None:
+                    return jsonify({'code': 404, 'message': "there's no such article"})
+                else:
+                    if comment is not None:  # 添加评论
+                        if len(comment.strip()) == 0:
+                            return jsonify({'code': 400, 'message': "there's nothing in the comment"})
+                        else:
+                            comment_id = 'comment' + '-' + user_id + '-' + str(int(time.time()))
+                            mongo.db.article.update_one(
+                                {'_id': ObjectId(article_id)},  # 条件
+                                {'$addToSet': {
+                                    'comment': {'comment_id': comment_id, 'comment': comment, 'subcomment': []}}})
+                            return jsonify({'code': 200, 'message': 'success',
+                                            'data': {'comment_id': comment_id, 'comment': comment}})
+                    elif subcomment is not None and comment_id is not None:  # 添加子评论
+                        if len(subcomment.strip()) == 0:
+                            return jsonify({'code': 400, 'message': "there's nothing in the subcomment"})
+                        else:
+                            subcomment_id = 'subcomment' + '-' + user_id + '-' + str(int(time.time()))
+                            index = -1
+                            for cnt, cmt in enumerate(article['comment']):
+                                if cmt['comment_id'] == comment_id:
+                                    index = cnt
+                                    break
+                            if index == -1:
+                                return jsonify({'code': 404, 'message': "there's no such comment to reply"})
+                            article['comment'][index]['subcomment'].append(
+                                {'subcomment': subcomment, 'subcomment_id': subcomment_id})
+                            mongo.db.article.update_one({'_id': ObjectId(article_id)},
+                                                        {'$set': {'comment': article['comment']}})
+                            return jsonify({'code': 200, 'message': 'success',
+                                            'data': {'comment_id': comment_id, 'subcomment_id': subcomment_id,
+                                                     'subcomment': subcomment}})
+                    else:
+                        jsonify({'code': 400, 'message': 'params error'})
+            except PyMongoError as e:
+                Log.error(e)
+                return jsonify({'code': 500, 'message': 'database error'})
+        else:
+            return jsonify({'code': 400, 'message': 'article_id invalid'})
 
 
 # like and collect
