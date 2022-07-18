@@ -30,13 +30,14 @@ app.register_blueprint(admin_bp)
 @app.before_request
 def before_request():
     token, msg = validate_token(request.headers.get('Authorization'))
-    # print(token, msg, request.headers.get('Authorization'))
     if msg is None:
         try:
             user = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
             g.user = user
         except Exception as e:
             print(e)
+    elif msg == 'token已失效':
+        g.refresh = True
 
 
 @app.after_request
@@ -45,7 +46,8 @@ def after_request(resp):
         resp.headers['Authorization'] = create_token(g.user)
         if hasattr(g, 'login') and g.login is True:
             resp.headers['refresh-token'] = create_token(g.user, refresh_token=True)
-    # print(resp.headers['Authorization'])
+    if hasattr(g, 'refresh') and g.refresh is True:
+        resp.headers['Authorization'] = 'refresh'
     return resp
 
 

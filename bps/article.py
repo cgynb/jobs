@@ -1,15 +1,15 @@
-import time
-
-from flask import Blueprint, request, jsonify, g, current_app
+from flask import Blueprint, request, jsonify, g
 from flask.views import MethodView
-from sqlalchemy import or_, and_
+from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from bson.objectid import ObjectId
 from pymongo.errors import PyMongoError
+import time
 from exts import mongo, db
 from models import LikeModel, CollectModel
 from utils.log import Log
 from utils.role_limit import login_required
+from utils.user_info import user_dict
 
 bp = Blueprint('article', __name__, url_prefix='/api/v1/article')
 
@@ -20,7 +20,7 @@ class ArticleAPI(MethodView):
         page = request.args.get('page', default='1')
         article_type = request.args.get('type')
         try:
-            if article_id is None:
+            if article_id is None:  # 获取文章列表
                 each_page = 10
                 total_article = mongo.db.article.count_documents({})
                 total_page = total_article // each_page + 1 if total_article % each_page else total_article // each_page
@@ -28,19 +28,33 @@ class ArticleAPI(MethodView):
                     condition = {}
                 else:
                     condition = {'type': article_type}
-                articles = mongo.db.article.find(condition, {'content': 0, 'commend': 0}). \
+                articles = mongo.db.article.find(condition, {'comment': 0}). \
                     limit(each_page).skip((int(page) - 1) * 10)
                 article_lst = []
                 for a in articles:
                     a['_id'] = str(a['_id'])
+                    a['content'] = a['content'][:100]
                     article_lst.append(a)
                 return jsonify({'code': 200, 'message': 'success',
                                 'data': {'current_page': page, 'total_article': total_article,
                                          'total_page': total_page, 'article': article_lst}})
-            else:
+            else:  # 获取一篇文章信息
                 if ObjectId.is_valid(article_id):
                     article = mongo.db.article.find_one({'_id': ObjectId(article_id)})
                     article['_id'] = str(article['_id'])
+                    # TODO 将user_id存到一个列表，然后使用in获取到用户列表，然后再对字典article进行操作
+                    for i in range(len(article['comment'])):
+                        user_id = article['comment'][i]['comment_id'].split('-')[1]
+                        user_dic = user_dict(user_id)
+                        send_time = article['comment'][i]['comment_id'].split('-')[2]
+                        article['comment'][i] |= user_dic
+                        article['comment'][i]['send_time'] = send_time
+                        for ii in range(len(article['comment'][i]['subcomment'])):
+                            user_id = article['comment'][i]['subcomment'][ii]['subcomment_id'].split('-')[1]
+                            user_dic = user_dict(user_id)
+                            send_time = article['comment'][i]['subcomment'][ii]['subcomment_id'].split('-')[2]
+                            article['comment'][i]['subcomment'][ii] |= user_dic
+                            article['comment'][i]['subcomment'][ii]['send_time'] = send_time
                     return jsonify({'code': 200, 'message': 'success', 'data': article})
                 else:
                     return jsonify({'code': 400, 'message': 'article_id invalid'})

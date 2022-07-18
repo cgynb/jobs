@@ -8,6 +8,8 @@ class UserModel(db.Model):
     username = db.Column(db.String(200), nullable=False, unique=True)
     email = db.Column(db.String(100), nullable=False, unique=True)
     password = db.Column(db.String(200), nullable=False)
+    avatar = db.Column(db.String(200), nullable=True)
+    tags = db.Column(db.String(100))
 
 
 class CaptchaModel(db.Model):
