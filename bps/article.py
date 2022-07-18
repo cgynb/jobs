@@ -6,10 +6,10 @@ from bson.objectid import ObjectId
 from pymongo.errors import PyMongoError
 import time
 from exts import mongo, db
-from models import LikeModel, CollectModel
+from models import LikeModel, CollectModel, UserModel
 from utils.log import Log
 from utils.role_limit import login_required
-from utils.user_info import user_dict
+from utils.user_info import user_dict, obj_to_dict
 
 bp = Blueprint('article', __name__, url_prefix='/api/v1/article')
 
@@ -41,20 +41,35 @@ class ArticleAPI(MethodView):
             else:  # 获取一篇文章信息
                 if ObjectId.is_valid(article_id):
                     article = mongo.db.article.find_one({'_id': ObjectId(article_id)})
+                    if article is None:
+                        return jsonify({'code': 404, 'message': "there's no such article"})
                     article['_id'] = str(article['_id'])
-                    # TODO 将user_id存到一个列表，然后使用in获取到用户列表，然后再对字典article进行操作
+                    user_id_dict = dict()  # id到用户详细关系的映射 {id1: userinfo1, id2: userinfo2 ...}
+                    # 第一个遍历获取到所有的user_id
                     for i in range(len(article['comment'])):
                         user_id = article['comment'][i]['comment_id'].split('-')[1]
-                        user_dic = user_dict(user_id)
                         send_time = article['comment'][i]['comment_id'].split('-')[2]
-                        article['comment'][i] |= user_dic
+                        user_id_dict[user_id] = None
                         article['comment'][i]['send_time'] = send_time
                         for ii in range(len(article['comment'][i]['subcomment'])):
                             user_id = article['comment'][i]['subcomment'][ii]['subcomment_id'].split('-')[1]
-                            user_dic = user_dict(user_id)
                             send_time = article['comment'][i]['subcomment'][ii]['subcomment_id'].split('-')[2]
-                            article['comment'][i]['subcomment'][ii] |= user_dic
+                            user_id_dict[user_id] = None
                             article['comment'][i]['subcomment'][ii]['send_time'] = send_time
+
+                    # 从数据库中拿到评论中所有id
+                    user_obj_lst = UserModel.query.filter(UserModel.user_id.in_(user_id_dict.keys())).all()
+                    # 将user_id_dict的每个id对应info
+                    for key in user_id_dict.keys():
+                        for u in user_obj_lst:
+                            user_id_dict[key] = obj_to_dict(u)
+                    # 第二次循环将info并入返回值
+                    for i in range(len(article['comment'])):
+                        user_id = article['comment'][i]['comment_id'].split('-')[1]
+                        article['comment'][i] |= user_id_dict[user_id]
+                        for ii in range(len(article['comment'][i]['subcomment'])):
+                            user_id = article['comment'][i]['subcomment'][ii]['subcomment_id'].split('-')[1]
+                            article['comment'][i]['subcomment'][ii] |= user_id_dict[user_id]
                     return jsonify({'code': 200, 'message': 'success', 'data': article})
                 else:
                     return jsonify({'code': 400, 'message': 'article_id invalid'})
@@ -85,7 +100,8 @@ class ArticleAPI(MethodView):
                                 {'$addToSet': {
                                     'comment': {'comment_id': comment_id, 'comment': comment, 'subcomment': []}}})
                             return jsonify({'code': 200, 'message': 'success',
-                                            'data': {'comment_id': comment_id, 'comment': comment}})
+                                            'data': {'comment_id': comment_id,
+                                                     'comment': comment} | user_dict(user_id)})
                     elif subcomment is not None and comment_id is not None:  # 添加子评论
                         if len(subcomment.strip()) == 0:
                             return jsonify({'code': 400, 'message': "there's nothing in the subcomment"})
@@ -104,7 +120,7 @@ class ArticleAPI(MethodView):
                                                         {'$set': {'comment': article['comment']}})
                             return jsonify({'code': 200, 'message': 'success',
                                             'data': {'comment_id': comment_id, 'subcomment_id': subcomment_id,
-                                                     'subcomment': subcomment}})
+                                                     'subcomment': subcomment} | user_dict(user_id)})
                     else:
                         jsonify({'code': 400, 'message': 'params error'})
             except PyMongoError as e:
