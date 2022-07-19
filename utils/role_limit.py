@@ -7,6 +7,6 @@ def login_required(func):
     def wrapper(*args, **kwargs):
         if hasattr(g, 'user'):
             return func(*args, **kwargs)
-        return jsonify({'code': 403, 'message': "login require"})
+        return jsonify({'code': 403, 'message': "login required"})
     return wrapper
 

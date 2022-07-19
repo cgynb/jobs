@@ -121,23 +121,49 @@ class UserAPI(MethodView):
         else:
             return jsonify({'code': 400, 'message': 'your captcha is wrong'})
 
-    def put(self):  # 修改密码
+    def put(self):  # 修改用户信息
         email = request.form.get('email')
         new_pwd = request.form.get('password')
         captcha_str = request.form.get('captcha')
-        try:
-            user = UserModel.query.filter(UserModel.email == email).first()
-            c_obj = CaptchaModel.query.filter(CaptchaModel.captcha == captcha_str).first()
-            if user and c_obj:
-                user.password = generate_password_hash(new_pwd)
-                db.session.commit()
-                return jsonify({'code': 200, 'message': 'success'})
-            elif user is None:
-                return jsonify({'code': 400, 'message': "your email is wrong"})
-            elif c_obj is None:
-                return jsonify({'code': 400, 'message': "your captcha is wrong"})
-        except SQLAlchemyError as e:
-            Log.error(e)
+
+        new_username = request.form.get('username')
+        new_tags = request.form.get('tags')
+        new_avatar = request.form.get('avatar')
+        if captcha_str is not None and new_pwd is not None:
+            if len(new_pwd) < 6:
+                return jsonify({'code': 403, 'message': 'your password is too short'})
+            try:
+                user = UserModel.query.filter(UserModel.email == email).first()
+                c_obj = CaptchaModel.query.filter(CaptchaModel.captcha == captcha_str).first()
+                if user and c_obj:
+                    user.password = generate_password_hash(new_pwd)
+                    db.session.commit()
+                    return jsonify({'code': 200, 'message': 'success'})
+                elif user is None:
+                    return jsonify({'code': 400, 'message': "your email is wrong"})
+                elif c_obj is None:
+                    return jsonify({'code': 400, 'message': "your captcha is wrong"})
+            except SQLAlchemyError as e:
+                Log.error(e)
+        elif new_tags is not None and new_username is not None and new_avatar is not None:
+            if hasattr(g, 'user') and g.user is not None:
+                try:
+                    user = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
+                    user.tags = new_tags
+                    user.username = new_username
+                    user.avatar = new_avatar
+                    db.session.commit()
+                except SQLAlchemyError as e:
+                    Log.error(e)
+                    return jsonify({'code': 500, 'message': 'database error'})
+                else:
+                    g.user.username = new_username
+                    g.user.tags = new_tags
+                    g.user.avatar = new_avatar
+                    new_user = obj_to_dict(g.user)
+                    return jsonify({'code': 200, 'message': 'success', 'data': new_user})
+            else:
+                return jsonify({'code': 403, 'message': 'login required'})
 
 
 bp.add_url_rule('/', view_func=UserAPI.as_view('user'), methods=['POST', 'PUT'])
