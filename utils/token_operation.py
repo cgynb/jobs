@@ -10,7 +10,7 @@ from jwt import exceptions
 import time
 
 
-def create_token(user, refresh_token=True):
+def create_token(user, refresh_token=False):
     headers = {
         "alg": "HS256",
         "typ": "JWT",

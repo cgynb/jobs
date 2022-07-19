@@ -11,6 +11,7 @@ from exts import db, mail
 from models import UserModel, CaptchaModel
 from utils.token_operation import validate_token
 from utils.log import Log
+from utils.user_info import obj_to_dict
 
 bp = Blueprint('user', __name__, url_prefix='/api/v1/user')
 
@@ -29,12 +30,7 @@ def login():
         if check_password_hash(cur_user.password, password):
             g.user = cur_user
             g.login = True
-            user_dict = g.user.__dict__
-            user_dict.pop('_sa_instance_state')
-            user_dict.pop('id')
-            user_dict.pop('password')
-            # print(user_dict)
-            return jsonify({'code': 200, 'message': 'success', 'data': user_dict})
+            return jsonify({'code': 200, 'message': 'success', 'data': obj_to_dict(g.user)})
         else:
             return jsonify({'code': 403, 'message': 'your password is wrong'})
 
