@@ -5,14 +5,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from bson.objectid import ObjectId
 from pymongo.errors import PyMongoError
 import time
-import random
 from pyquery import PyQuery as PQ
 from exts import mongo, db
 from models import LikeModel, CollectModel, UserModel
 from utils.log import Log
 from utils.role_limit import login_required
 from utils.user_info import user_dict, obj_to_dict
-from utils.imgs import title_img_lst
 
 bp = Blueprint('article', __name__, url_prefix='/api/v1/article')
 
@@ -37,8 +35,6 @@ class ArticleAPI(MethodView):
                 for a in articles:
                     a['_id'] = str(a['_id'])
                     a['content'] = PQ(a['content']).text().replace('\n', '')[:100]
-                    if a['title_img'] is None:
-                        a['title_img'] = title_img_lst[random.randint(0, len(title_img_lst)-1)]
                     article_lst.append(a)
                 return jsonify({'code': 200, 'message': 'success',
                                 'data': {'current_page': page, 'total_article': total_article,
@@ -147,8 +143,10 @@ class LCAPI(MethodView):
                 else:
                     if hasattr(g, 'user'):
                         user_id = g.user.user_id
-                        like_obj = LikeModel.query.filter(LikeModel.user_id == user_id).first()
-                        collect_obj = CollectModel.query.filter(CollectModel.user_id == user_id).first()
+                        like_obj = LikeModel.query.filter(and_(LikeModel.user_id == user_id,
+                                                               LikeModel.article_id == article_id)).first()
+                        collect_obj = CollectModel.query.filter(and_(CollectModel.user_id == user_id,
+                                                                     CollectModel.article_id == article_id)).first()
                         return jsonify({'code': 200, 'message': 'success',
                                         'data': {'article': {'like': article['like'], 'collect': article['collect']},
                                                  'user': {'like': bool(like_obj), 'collect': bool(collect_obj)}}})

@@ -157,11 +157,8 @@ class UserAPI(MethodView):
                     Log.error(e)
                     return jsonify({'code': 500, 'message': 'database error'})
                 else:
-                    g.user.username = new_username
-                    g.user.tags = new_tags
-                    g.user.avatar = new_avatar
-                    new_user = obj_to_dict(g.user)
-                    return jsonify({'code': 200, 'message': 'success', 'data': new_user})
+                    user = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
+                    return jsonify({'code': 200, 'message': 'success', 'data': obj_to_dict(user)})
             else:
                 return jsonify({'code': 403, 'message': 'login required'})
 
