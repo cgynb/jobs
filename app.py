@@ -1,3 +1,4 @@
+import os
 from flask import Flask, g, request
 from bps import user_bp, article_bp, admin_bp
 from utils.token_operation import validate_token, create_token
@@ -5,7 +6,8 @@ from exts import db, migrate, mail, cors, mongo
 from models import UserModel
 import toml
 import logging
-from utils.role_limit import login_required
+from utils.user_info import upload_avatar
+
 app = Flask(__name__)
 app.config.from_file('config.toml', load=toml.load)
 
@@ -51,14 +53,12 @@ def after_request(resp):
     return resp
 
 
-@app.route('/')
-@login_required
+@app.route('/', methods=['POST'])
 def test_view():
-    try:
-        1/0
-    except Exception as e:
-        from utils.log import Log
-        Log.exception(e)
+    f = request.files.get('avatar')
+    suffix = os.path.splitext(f.filename)[-1]
+    user_id = '123'
+    upload_avatar(user_id, f, suffix)
     return 'test'
 
 

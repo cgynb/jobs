@@ -5,13 +5,15 @@ from flask import Blueprint, request, jsonify, g, current_app
 from flask.views import MethodView
 from flask_mail import Message
 from werkzeug.security import generate_password_hash, check_password_hash
+from qcloud_cos.cos_exception import CosClientError, CosServiceError
 import datetime
 import random
+import os
 from exts import db, mail
 from models import UserModel, CaptchaModel
 from utils.token_operation import validate_token
 from utils.log import Log
-from utils.user_info import obj_to_dict
+from utils.user_info import obj_to_dict, upload_avatar
 
 bp = Blueprint('user', __name__, url_prefix='/api/v1/user')
 
@@ -128,7 +130,7 @@ class UserAPI(MethodView):
 
         new_username = request.form.get('username')
         new_tags = request.form.get('tags')
-        new_avatar = request.form.get('avatar')
+        new_avatar = request.files.get('avatar')
         if captcha_str is not None and new_pwd is not None:
             if len(new_pwd) < 6:
                 return jsonify({'code': 403, 'message': 'your password is too short'})
@@ -145,7 +147,7 @@ class UserAPI(MethodView):
                     return jsonify({'code': 400, 'message': "your captcha is wrong"})
             except SQLAlchemyError as e:
                 Log.error(e)
-        elif new_tags is not None and new_username is not None and new_avatar is not None:
+        elif new_tags is not None and new_username is not None:
             if hasattr(g, 'user') and g.user is not None:
                 try:
                     user = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
@@ -161,6 +163,24 @@ class UserAPI(MethodView):
                     return jsonify({'code': 200, 'message': 'success', 'data': obj_to_dict(user)})
             else:
                 return jsonify({'code': 403, 'message': 'login required'})
+        elif new_avatar is not None:
+            if hasattr(g, 'user') and g.user is not None:
+                try:
+                    suffix = os.path.splitext(new_avatar.filename)[-1]
+                    upload_avatar(g.user.user_id, new_avatar, suffix)
+                except CosClientError as e:
+                    Log.error(e)
+                    return jsonify({'code': 500, 'message': 'cos client error'})
+                except CosServiceError as e:
+                    Log.error(e)
+                    return jsonify({'code': 500, 'message': 'cos server error'})
+                else:
+                    return jsonify({'code': '200', 'message': 'success'})
+            else:
+                return jsonify({'code': 403, 'message': 'login required'})
+        else:
+            return jsonify({'code': 400, 'message': 'lost params'})
+
 
 
 bp.add_url_rule('/', view_func=UserAPI.as_view('user'), methods=['POST', 'PUT'])
