@@ -57,13 +57,13 @@ class ArticleAPI(MethodView):
                             send_time = article['comment'][i]['subcomment'][ii]['subcomment_id'].split('-')[2]
                             user_id_dict[user_id] = None
                             article['comment'][i]['subcomment'][ii]['send_time'] = send_time
-
                     # 从数据库中拿到评论中所有id
                     user_obj_lst = UserModel.query.filter(UserModel.user_id.in_(user_id_dict.keys())).all()
                     # 将user_id_dict的每个id对应info
                     for key in user_id_dict.keys():
                         for u in user_obj_lst:
-                            user_id_dict[key] = obj_to_dict(u)
+                            if key == u.user_id:
+                                user_id_dict[key] = obj_to_dict(u)
                     # 第二次循环将info并入返回值
                     for i in range(len(article['comment'])):
                         user_id = article['comment'][i]['comment_id'].split('-')[1]
@@ -95,19 +95,23 @@ class ArticleAPI(MethodView):
                         if len(comment.strip()) == 0:
                             return jsonify({'code': 400, 'message': "there's nothing in the comment"})
                         else:
-                            comment_id = 'comment' + '-' + user_id + '-' + str(int(time.time()))
+                            send_time = str(int(time.time()))
+                            comment_id = 'comment' + '-' + user_id + '-' + send_time
                             mongo.db.article.update_one(
                                 {'_id': ObjectId(article_id)},  # 条件
                                 {'$addToSet': {
                                     'comment': {'comment_id': comment_id, 'comment': comment, 'subcomment': []}}})
                             return jsonify({'code': 200, 'message': 'success',
                                             'data': {'comment_id': comment_id,
-                                                     'comment': comment} | user_dict(user_id)})
+                                                     'comment': comment,
+                                                     'send_time': send_time,
+                                                     'subcomment': []} | user_dict(user_id)})
                     elif subcomment is not None and comment_id is not None:  # 添加子评论
                         if len(subcomment.strip()) == 0:
                             return jsonify({'code': 400, 'message': "there's nothing in the subcomment"})
                         else:
-                            subcomment_id = 'subcomment' + '-' + user_id + '-' + str(int(time.time()))
+                            send_time = str(int(time.time()))
+                            subcomment_id = 'subcomment' + '-' + user_id + '-' + send_time
                             index = -1
                             for cnt, cmt in enumerate(article['comment']):
                                 if cmt['comment_id'] == comment_id:
@@ -120,8 +124,10 @@ class ArticleAPI(MethodView):
                             mongo.db.article.update_one({'_id': ObjectId(article_id)},
                                                         {'$set': {'comment': article['comment']}})
                             return jsonify({'code': 200, 'message': 'success',
-                                            'data': {'comment_id': comment_id, 'subcomment_id': subcomment_id,
-                                                     'subcomment': subcomment} | user_dict(user_id)})
+                                            'data': {'comment_id': comment_id,
+                                                     'subcomment_id': subcomment_id,
+                                                     'subcomment': subcomment,
+                                                     'send_time': send_time} | user_dict(user_id)})
                     else:
                         jsonify({'code': 400, 'message': 'params error'})
             except PyMongoError as e:
