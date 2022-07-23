@@ -7,7 +7,7 @@ from models import UserModel
 import toml
 import logging
 from utils.user_info import upload_avatar
-
+from utils.role_limit import login_required
 app = Flask(__name__)
 app.config.from_file('config.toml', load=toml.load)
 
@@ -53,12 +53,13 @@ def after_request(resp):
     return resp
 
 
-@app.route('/', methods=['POST'])
+@app.route('/')
+@login_required
 def test_view():
-    f = request.files.get('avatar')
-    suffix = os.path.splitext(f.filename)[-1]
-    user_id = '123'
-    upload_avatar(user_id, f, suffix)
+    # f = request.files.get('avatar')
+    # suffix = os.path.splitext(f.filename)[-1]
+    # user_id = '123'
+    # upload_avatar(user_id, f, suffix)
     return 'test'
 
 

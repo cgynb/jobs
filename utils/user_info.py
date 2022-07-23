@@ -2,7 +2,14 @@ from flask import current_app
 from qcloud_cos import CosConfig
 from qcloud_cos import CosS3Client
 from models import UserModel
-from .imgs import user_img_lst
+
+
+def user_obj(user_id=None):
+    user = UserModel.query.filter(UserModel.user_id == user_id).first()
+    if user is not None:
+        return user
+    else:
+        return None
 
 
 def user_dict(user_id=None):

@@ -1,4 +1,3 @@
-import string
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from smtplib import SMTPException
 from flask import Blueprint, request, jsonify, g, current_app
@@ -14,51 +13,52 @@ from models import UserModel, CaptchaModel
 from utils.token_operation import validate_token
 from utils.log import Log
 from utils.user_info import obj_to_dict, upload_avatar
+from utils.others import rand_str
 
 bp = Blueprint('user', __name__, url_prefix='/api/v1/user')
 
 
-@bp.route('/login/', methods=['POST'])
-def login():
-    username = request.form.get('username')
-    password = request.form.get('password')
-    try:
-        cur_user = UserModel.query.filter(UserModel.username == username).first()
-    except SQLAlchemyError as e:
-        Log.error(e)
-    else:
-        if cur_user is None:
-            return jsonify({'code': 404, 'message': "there's no such user"})
-        if check_password_hash(cur_user.password, password):
-            g.user = cur_user
-            g.login = True
-            return jsonify({'code': 200, 'message': 'success', 'data': obj_to_dict(g.user)})
-        else:
-            return jsonify({'code': 403, 'message': 'your password is wrong'})
-
-
-@bp.route('/refresh/', methods=['POST'])
-def refresh():
-    refresh_token = request.form.get('refresh_token')
-    token, msg = validate_token(refresh_token)
-    if msg is None:
+class LoginAPI(MethodView):
+    def post(self):
+        username = request.form.get('username')
+        password = request.form.get('password')
         try:
-            user = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
+            cur_user = UserModel.query.filter(UserModel.username == username).first()
         except SQLAlchemyError as e:
             Log.error(e)
+            return jsonify({'code': 500, 'message': 'database error'})
         else:
-            g.user = user
-        return jsonify({'code': 200, 'message': 'success'})
-    else:
-        print(msg)
-        return jsonify({'code': 403, 'message': "your refresh token is wrong"})
+            if cur_user is None:
+                return jsonify({'code': 404, 'message': "there's no such user"})
+            if check_password_hash(cur_user.password, password):
+                g.user = cur_user
+                g.login = True
+                return jsonify({'code': 200, 'message': 'success', 'data': obj_to_dict(g.user)})
+            else:
+                return jsonify({'code': 403, 'message': 'your password is wrong'})
+
+
+class RefreshAPI(MethodView):
+    def post(self):
+        refresh_token = request.form.get('refresh_token')
+        token, msg = validate_token(refresh_token, refresh_token=True)
+        if msg is None:
+            try:
+                user = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
+            except SQLAlchemyError as e:
+                Log.error(e)
+            else:
+                g.user = user
+            return jsonify({'code': 200, 'message': 'success'})
+        else:
+            return jsonify({'code': 403, 'message': 'please login again'})
 
 
 class CaptchaAPI(MethodView):
     def get(self):  # 4-8位的验证码
         email = request.args.get('email')
         captcha_len = random.randint(4, 8)
-        ret = ''.join((string.digits + string.ascii_letters)[random.randint(0, 61)] for _ in range(captcha_len))
+        ret = rand_str(captcha_len)
         if email:
             try:
                 c = CaptchaModel.query.filter(CaptchaModel.email == email).first()
@@ -107,8 +107,7 @@ class UserAPI(MethodView):
         c_str = request.form.get('captcha')
         c_obj = CaptchaModel.query.filter(CaptchaModel.captcha == c_str).first()
         if c_obj:
-            user_id = ''.join((string.digits+string.ascii_letters)[random.randint(0, 61)] for _ in range(5)) + \
-                      '{0:%m%d%H%M%S%f}'.format(datetime.datetime.now())
+            user_id = rand_str(5) + '{0:%m%d%H%M%S%f}'.format(datetime.datetime.now())
             if len(password) < 6:
                 return jsonify({'code': 403, 'message': 'your password is too short'})
             try:
@@ -183,7 +182,7 @@ class UserAPI(MethodView):
             return jsonify({'code': 400, 'message': 'lost params'})
 
 
-
 bp.add_url_rule('/', view_func=UserAPI.as_view('user'), methods=['POST', 'PUT'])
 bp.add_url_rule('/captcha/', view_func=CaptchaAPI.as_view('captcha'), methods=['GET', 'POST'])
-
+bp.add_url_rule('/login/', view_func=LoginAPI.as_view('login'), methods=['POST'])
+bp.add_url_rule('/refresh/', view_func=RefreshAPI.as_view('refresh'), methods=['POST'])
