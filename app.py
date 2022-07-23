@@ -44,12 +44,12 @@ def before_request():
 
 @app.after_request
 def after_request(resp):
+    if hasattr(g, 'refresh') and g.refresh is True:
+        resp.headers['Authorization'] = 'refresh'
     if hasattr(g, 'user'):
         resp.headers['Authorization'] = create_token(g.user)
         if hasattr(g, 'login') and g.login is True:
             resp.headers['refresh-token'] = create_token(g.user, refresh_token=True)
-    if hasattr(g, 'refresh') and g.refresh is True:
-        resp.headers['Authorization'] = 'refresh'
     return resp
 
 

@@ -34,7 +34,7 @@ class ArticleAPI(MethodView):
                 article_lst = []
                 for a in articles:
                     a['_id'] = str(a['_id'])
-                    a['content'] = PQ(a['content']).text().replace('\n', '')[:100]
+                    a['content'] = PQ(a['content']).text().replace('\n', '')[:100] + '. . . . . .'
                     article_lst.append(a)
                 return jsonify({'code': 200, 'message': 'success',
                                 'data': {'current_page': page, 'total_article': total_article,

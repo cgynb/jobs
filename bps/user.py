@@ -50,6 +50,7 @@ def refresh():
             g.user = user
         return jsonify({'code': 200, 'message': 'success'})
     else:
+        print(msg)
         return jsonify({'code': 403, 'message': "your refresh token is wrong"})
 
 
