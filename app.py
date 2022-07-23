@@ -1,12 +1,11 @@
-import os
 from flask import Flask, g, request
+import click
 from bps import user_bp, article_bp, admin_bp
 from utils.token_operation import validate_token, create_token
 from exts import db, migrate, mail, cors, mongo
 from models import UserModel
 import toml
 import logging
-from utils.user_info import upload_avatar
 from utils.role_limit import login_required
 app = Flask(__name__)
 app.config.from_file('config.toml', load=toml.load)
@@ -61,6 +60,16 @@ def test_view():
     # user_id = '123'
     # upload_avatar(user_id, f, suffix)
     return 'test'
+
+
+@app.cli.command('start')
+@click.option('--port', type=int, default=5000, help='runing port')
+def run(port):
+    import eventlet
+    from eventlet import wsgi
+    eventlet.monkey_patch()
+    # wsgi.server(eventlet.listen(('0.0.0.0', port)), app)
+    app.run('0.0.0.0', port)
 
 
 if __name__ == '__main__':
