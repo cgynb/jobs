@@ -1,5 +1,6 @@
 from flask import Flask, g, request
 import click
+from sqlalchemy.exc import SQLAlchemyError
 from bps import user_bp, article_bp, admin_bp
 from utils.token_operation import validate_token, create_token
 from exts import db, migrate, mail, cors, mongo
@@ -7,6 +8,9 @@ from models import UserModel
 import toml
 import logging
 from utils.role_limit import login_required
+from utils.log import Log
+
+
 app = Flask(__name__)
 app.config.from_file('config.toml', load=toml.load)
 
@@ -35,8 +39,8 @@ def before_request():
         try:
             user = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
             g.user = user
-        except Exception as e:
-            print(e)
+        except SQLAlchemyError as e:
+            Log.error(e)
     elif msg == 'token已失效':
         g.refresh = True
 
@@ -69,7 +73,6 @@ def run(port):
     from eventlet import wsgi
     eventlet.monkey_patch()
     # wsgi.server(eventlet.listen(('0.0.0.0', port)), app)
-    app.run('0.0.0.0', port)
 
 
 if __name__ == '__main__':

@@ -42,6 +42,7 @@ class RefreshAPI(MethodView):
     def post(self):
         refresh_token = request.form.get('refresh_token')
         token, msg = validate_token(refresh_token, refresh_token=True)
+        g.refresh = False
         if msg is None:
             try:
                 user = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()

@@ -4,6 +4,7 @@ import jwt
 from jwt import exceptions
 import time
 from .others import rand_str
+from .log import Log
 from exts import db
 from models import UserModel
 
@@ -38,10 +39,17 @@ def validate_token(token, refresh_token=False):
     try:
         payload = jwt.decode(jwt=token, key=key, algorithms=['HS256'], issuer='byszqq')
         if refresh_token is True:
-            user = UserModel.query.filter(UserModel.user_id == payload.get('user_id')).first()
-            print(payload.get('refresh_key'))
-            if user.refresh_key != payload.get('refresh_key'):
-                msg = 'refresh key 错误'
+            try:
+                user = UserModel.query.filter(UserModel.user_id == payload.get('user_id')).first()
+            except SQLAlchemyError as e:
+                Log.error(e)
+                return dict(), 'database error'
+            else:
+                if user.refresh_key != payload.get('refresh_key'):
+                    msg = 'refresh key 错误'
+        else:
+            if payload.get('refresh_key') is not None:
+                msg = '禁止用refresh token'
     except exceptions.ExpiredSignatureError:
         msg = 'token已失效'
     except jwt.DecodeError:

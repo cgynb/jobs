@@ -78,6 +78,8 @@ class ArticleAPI(MethodView):
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
 
+
+class CommentAPI(MethodView):
     @login_required
     def post(self):
         article_id = request.form.get('article_id')
@@ -235,5 +237,6 @@ class LCAPI(MethodView):
             return jsonify({'code': 500, 'message': 'database error'})
 
 
-bp.add_url_rule('/', view_func=ArticleAPI.as_view('article'), methods=['GET', 'POST'])
+bp.add_url_rule('/', view_func=ArticleAPI.as_view('article'), methods=['GET'])
 bp.add_url_rule('/lc/', view_func=LCAPI.as_view('like-collect'), methods=['GET', 'PUT'])
+bp.add_url_rule('/comment/', view_func=CommentAPI.as_view('comment'), methods=['POST'])
