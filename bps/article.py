@@ -1,3 +1,4 @@
+import pymongo
 from flask import Blueprint, request, jsonify, g
 from flask.views import MethodView
 from sqlalchemy import and_
@@ -11,10 +12,12 @@ from models import LikeModel, CollectModel, UserModel
 from utils.log import Log
 from utils.role_limit import login_required
 from utils.user_info import user_dict, obj_to_dict
+from utils.others import rand_title_img
 
 bp = Blueprint('article', __name__, url_prefix='/api/v1/article')
 
 
+# TODO: POST ARTICLE
 class ArticleAPI(MethodView):
     def get(self):  # 1. article_id[必选] -> 文章信息         2. page[可选|None] type[可选|None] article_id[None] 返回文章列表
         article_id = request.args.get('article_id')
@@ -78,7 +81,18 @@ class ArticleAPI(MethodView):
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
 
+    def post(self):
+        title = request.form.get('title')
+        title_img = request.form.get('title_img', default=rand_title_img())  # 唯一可空的元素
+        article_content = request.form.get('article')
+        if len(article_content.strip()) == 0:
+            return jsonify({'code': 403, 'message': 'the length of the content is 0'})
+        elif len(title.strip()) == 0:
+            return jsonify({'code': 403, 'message': 'the length of the title is 0'})
+        return jsonify({'code': 200, 'message': 'success'})
 
+
+# TODO: DELETE ARTICLE COMMENT
 class CommentAPI(MethodView):
     @login_required
     def post(self):
@@ -137,6 +151,30 @@ class CommentAPI(MethodView):
                 return jsonify({'code': 500, 'message': 'database error'})
         else:
             return jsonify({'code': 400, 'message': 'article_id invalid'})
+
+
+class RecommendAPI(MethodView):
+    def get(self):
+        hot = True if request.args.get('hot', default=False) == 'true' else False
+        analyze = True if request.args.get('analyze', default=False) == 'true' else False
+        if isinstance(hot, bool) and isinstance(analyze, bool):
+            if hot is True and analyze is False:
+                articles = mongo.db.article.find({}, {'content': 0, 'comment': 0}).\
+                    sort([('like', pymongo.DESCENDING), ('collect', pymongo.DESCENDING)]).limit(5)
+                article_lst = []
+                for article in articles:
+                    article['_id'] = str(article['_id'])
+                    article_lst.append(article)
+                return jsonify({'code': 200, 'message': 'success', 'data': article_lst})
+            elif hot is False and analyze is True:
+                # TODO: 坐等gbq给接口
+                return jsonify({'code': 200, 'message': 'success', 'data': "等gbq"})
+            elif hot is False and analyze is False:
+                return jsonify({'code': 400, 'message': 'params error (both false)'})
+            elif hot is True and analyze is True:
+                return jsonify({'code': 400, 'message': 'params error (both true)'})
+        else:
+            return jsonify({'code': 400, 'message': 'params error (need bool type)'})
 
 
 # like and collect
@@ -240,3 +278,4 @@ class LCAPI(MethodView):
 bp.add_url_rule('/', view_func=ArticleAPI.as_view('article'), methods=['GET'])
 bp.add_url_rule('/lc/', view_func=LCAPI.as_view('like-collect'), methods=['GET', 'PUT'])
 bp.add_url_rule('/comment/', view_func=CommentAPI.as_view('comment'), methods=['POST'])
+bp.add_url_rule('/recommend/', view_func=RecommendAPI.as_view('recommend'), methods=['GET'])

@@ -67,7 +67,7 @@ def test_view():
 
 
 @app.cli.command('start')
-@click.option('--port', type=int, default=5000, help='runing port')
+@click.option('--port', type=int, default=5000, help='running port')
 def run(port):
     import eventlet
     from eventlet import wsgi

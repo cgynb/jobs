@@ -131,6 +131,7 @@ class UserAPI(MethodView):
 
         new_username = request.form.get('username')
         new_tags = request.form.get('tags')
+
         new_avatar = request.files.get('avatar')
         if captcha_str is not None and new_pwd is not None:
             if len(new_pwd) < 6:
@@ -169,6 +170,12 @@ class UserAPI(MethodView):
                 try:
                     suffix = os.path.splitext(new_avatar.filename)[-1]
                     upload_avatar(g.user.user_id, new_avatar, suffix)
+                    user = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
+                    user.avatar = f'https://byszqq-1310478750.cos.ap-nanjing.myqcloud.com/{g.user.user_id}.{suffix}'
+                    db.session.commit()
+                except SQLAlchemyError as e:
+                    Log.error(e)
+                    return jsonify({'code': 200, 'message': 'database error'})
                 except CosClientError as e:
                     Log.error(e)
                     return jsonify({'code': 500, 'message': 'cos client error'})
