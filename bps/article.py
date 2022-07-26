@@ -155,23 +155,28 @@ class CommentAPI(MethodView):
 
 class RecommendAPI(MethodView):
     def get(self):
-        hot = True if request.args.get('hot', default=False) == 'true' else False
-        analyze = True if request.args.get('analyze', default=False) == 'true' else False
-        if isinstance(hot, bool) and isinstance(analyze, bool):
-            if hot is True and analyze is False:
-                articles = mongo.db.article.find({}, {'content': 0, 'comment': 0}).\
-                    sort([('like', pymongo.DESCENDING), ('collect', pymongo.DESCENDING)]).limit(5)
-                article_lst = []
-                for article in articles:
-                    article['_id'] = str(article['_id'])
-                    article_lst.append(article)
-                return jsonify({'code': 200, 'message': 'success', 'data': article_lst})
-            elif hot is False and analyze is True:
+        lc = True if request.args.get('lc', default=False) == 'true' else False
+        ai = True if request.args.get('ai', default=False) == 'true' else False
+        condition = {'type': request.args.get('type')} if request.args.get('type') is not None else {}
+        if isinstance(lc, bool) and isinstance(ai, bool):
+            if lc is True and ai is False:
+                try:
+                    articles = mongo.db.article.find(condition, {'content': 0, 'comment': 0}).\
+                        sort([('like', pymongo.DESCENDING), ('collect', pymongo.DESCENDING)]).limit(5)
+                    article_lst = []
+                    for article in articles:
+                        article['_id'] = str(article['_id'])
+                        article_lst.append(article)
+                    return jsonify({'code': 200, 'message': 'success', 'data': article_lst})
+                except PyMongoError as e:
+                    Log.error(e)
+                    return jsonify({'code': 500, 'message': 'database error'})
+            elif lc is False and ai is True:
                 # TODO: 坐等gbq给接口
                 return jsonify({'code': 200, 'message': 'success', 'data': "等gbq"})
-            elif hot is False and analyze is False:
+            elif lc is False and ai is False:
                 return jsonify({'code': 400, 'message': 'params error (both false)'})
-            elif hot is True and analyze is True:
+            elif lc is True and ai is True:
                 return jsonify({'code': 400, 'message': 'params error (both true)'})
         else:
             return jsonify({'code': 400, 'message': 'params error (need bool type)'})

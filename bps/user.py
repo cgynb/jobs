@@ -171,7 +171,7 @@ class UserAPI(MethodView):
                     suffix = os.path.splitext(new_avatar.filename)[-1]
                     upload_avatar(g.user.user_id, new_avatar, suffix)
                     user = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
-                    user.avatar = f'https://byszqq-1310478750.cos.ap-nanjing.myqcloud.com/{g.user.user_id}.{suffix}'
+                    user.avatar = f'https://byszqq-1310478750.cos.ap-nanjing.myqcloud.com/{g.user.user_id}{suffix}'
                     db.session.commit()
                 except SQLAlchemyError as e:
                     Log.error(e)
@@ -183,7 +183,7 @@ class UserAPI(MethodView):
                     Log.error(e)
                     return jsonify({'code': 500, 'message': 'cos server error'})
                 else:
-                    return jsonify({'code': '200', 'message': 'success'})
+                    return jsonify({'code': 200, 'message': 'success', 'data': user.avatar})
             else:
                 return jsonify({'code': 403, 'message': 'login required'})
         else:
