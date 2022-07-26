@@ -1,3 +1,4 @@
+import typing as t
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from smtplib import SMTPException
 from flask import Blueprint, request, jsonify, g, current_app
@@ -21,10 +22,10 @@ bp = Blueprint('user', __name__, url_prefix='/api/v1/user')
 
 class LoginAPI(MethodView):
     def post(self):
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username: str = request.form.get('username')
+        password: str = request.form.get('password')
         try:
-            cur_user = UserModel.query.filter(UserModel.username == username).first()
+            cur_user: UserModel = UserModel.query.filter(UserModel.username == username).first()
         except SQLAlchemyError as e:
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
@@ -41,12 +42,12 @@ class LoginAPI(MethodView):
 
 class RefreshAPI(MethodView):
     def post(self):
-        refresh_token = request.form.get('refresh_token')
+        refresh_token: str = request.form.get('refresh_token')
         token, msg = validate_token(refresh_token, refresh_token=True)
         g.refresh = False
         if msg is None:
             try:
-                user = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
+                user: UserModel = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
             except SQLAlchemyError as e:
                 Log.error(e)
             else:
@@ -58,19 +59,19 @@ class RefreshAPI(MethodView):
 
 class CaptchaAPI(MethodView):
     def get(self):  # 4-8位的验证码
-        email = request.args.get('email')
-        captcha_len = random.randint(4, 8)
-        ret = rand_str(captcha_len)
+        email: str = request.args.get('email')
+        captcha_len: int = random.randint(4, 8)
+        ret: str = rand_str(captcha_len)
         if email:
             try:
-                c = CaptchaModel.query.filter(CaptchaModel.email == email).first()
+                c: CaptchaModel = CaptchaModel.query.filter(CaptchaModel.email == email).first()
                 if c:
                     c.captcha = ret
                 else:
-                    c = CaptchaModel(email=email, captcha=ret)
+                    c: CaptchaModel = CaptchaModel(email=email, captcha=ret)
                     db.session.add(c)
                 db.session.commit()
-                message = Message(
+                message: Message = Message(
                     subject='求职',
                     recipients=[email],
                     body=f'验证码是：{ret}，请不要告诉他人',
@@ -88,10 +89,10 @@ class CaptchaAPI(MethodView):
             return jsonify({'code': 400, 'message': 'lose params'})
 
     def post(self):
-        email = request.form.get('email')
-        c_str = request.form.get('captcha')
+        email: str = request.form.get('email')
+        c_str: str = request.form.get('captcha')
         try:
-            c_obj = CaptchaModel.query.filter(CaptchaModel.email == email).first()
+            c_obj: CaptchaModel = CaptchaModel.query.filter(CaptchaModel.email == email).first()
         except SQLAlchemyError as e:
             Log.error(e)
         else:
@@ -104,10 +105,10 @@ class CaptchaAPI(MethodView):
 class TagsAPI(MethodView):
     @login_required
     def post(self):
-        new_tag = request.form.get('tag')
+        new_tag: str = request.form.get('tag')
         if isinstance(new_tag, str) and len(new_tag) <= 10:
             try:
-                user = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
+                user: UserModel = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
                 if user.tags is None:
                     user.tags = f'{new_tag}|'
                 else:
@@ -122,11 +123,11 @@ class TagsAPI(MethodView):
 
     @login_required
     def delete(self):
-        del_tag = request.form.get('tag')
+        del_tag: str = request.form.get('tag')
         if isinstance(del_tag, str) and len(del_tag) <= 10:
             try:
-                user = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
-                tag_lst = tag_str_to_lst(user.tags)
+                user: UserModel = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
+                tag_lst: list = tag_str_to_lst(user.tags)
                 if del_tag in tag_lst:
                     tag_lst.remove(del_tag)
                     user.tags = tag_lst_to_str(tag_lst)
@@ -143,17 +144,17 @@ class TagsAPI(MethodView):
 
 class UserAPI(MethodView):
     def post(self):  # 注册用户 1. 用户名 2. 密码 3. 邮箱 4. 验证码
-        username = request.form.get('username')
-        password = generate_password_hash(request.form.get('password'))
-        email = request.form.get('email')
-        c_str = request.form.get('captcha')
-        c_obj = CaptchaModel.query.filter(CaptchaModel.captcha == c_str).first()
+        username: str = request.form.get('username')
+        password: str = generate_password_hash(request.form.get('password'))
+        email: str = request.form.get('email')
+        c_str: str = request.form.get('captcha')
+        c_obj: CaptchaModel = CaptchaModel.query.filter(CaptchaModel.captcha == c_str).first()
         if c_obj:
-            user_id = rand_str(5) + '{0:%m%d%H%M%S%f}'.format(datetime.datetime.now())
+            user_id: str = rand_str(5) + '{0:%m%d%H%M%S%f}'.format(datetime.datetime.now())
             if len(password) < 6:
                 return jsonify({'code': 403, 'message': 'your password is too short'})
             try:
-                cur_user = UserModel(user_id=user_id, username=username, password=password, email=email)
+                cur_user: UserModel = UserModel(user_id=user_id, username=username, password=password, email=email)
                 db.session.add(cur_user)
                 db.session.commit()
             except IntegrityError:  # 这里不打日志，因为可以明确这是由于unique字段重复导致
@@ -166,19 +167,19 @@ class UserAPI(MethodView):
             return jsonify({'code': 400, 'message': 'your captcha is wrong'})
 
     def put(self):  # 修改用户信息 1. 忘记密码 2. 修改用户名 3. 头像
-        email = request.form.get('email')
-        new_pwd = request.form.get('password')
-        captcha_str = request.form.get('captcha')
+        email: str = request.form.get('email')
+        new_pwd: str = request.form.get('password')
+        captcha_str: str = request.form.get('captcha')
 
-        new_username = request.form.get('username')
+        new_username: str = request.form.get('username')
 
-        new_avatar = request.files.get('avatar')
+        new_avatar: t.Any = request.files.get('avatar')
         if captcha_str is not None and new_pwd is not None:
             if len(new_pwd) < 6:
                 return jsonify({'code': 403, 'message': 'your password is too short'})
             try:
-                user = UserModel.query.filter(UserModel.email == email).first()
-                c_obj = CaptchaModel.query.filter(CaptchaModel.captcha == captcha_str).first()
+                user: UserModel = UserModel.query.filter(UserModel.email == email).first()
+                c_obj: CaptchaModel = CaptchaModel.query.filter(CaptchaModel.captcha == captcha_str).first()
                 if user and c_obj:
                     user.password = generate_password_hash(new_pwd)
                     db.session.commit()
@@ -191,25 +192,28 @@ class UserAPI(MethodView):
                 Log.error(e)
         elif new_username is not None:
             if hasattr(g, 'user') and g.user is not None:
+                if new_username == g.user.username:
+                    return jsonify({'code': 403, 'message': 'this name is the same as current'})
                 try:
-                    user = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
-                    user.username = new_username
-                    user.avatar = new_avatar
-                    db.session.commit()
+                    check_user: UserModel = UserModel.query.filter(UserModel.username == new_username).first()
+                    if check_user is None:
+                        user: UserModel = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
+                        user.username = new_username
+                        db.session.commit()
+                        return jsonify({'code': 200, 'message': 'success', 'data': obj_to_dict(user)})
+                    else:
+                        return jsonify({'code': 403, 'message': 'this name has been used'})
                 except SQLAlchemyError as e:
                     Log.error(e)
                     return jsonify({'code': 500, 'message': 'database error'})
-                else:
-                    user = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
-                    return jsonify({'code': 200, 'message': 'success', 'data': obj_to_dict(user)})
             else:
                 return jsonify({'code': 403, 'message': 'login required'})
         elif new_avatar is not None:
             if hasattr(g, 'user') and g.user is not None:
                 try:
-                    suffix = os.path.splitext(new_avatar.filename)[-1]
+                    suffix: str = os.path.splitext(new_avatar.filename)[-1]
                     upload_avatar(g.user.user_id, new_avatar, suffix)
-                    user = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
+                    user: UserModel = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
                     user.avatar = f'https://byszqq-1310478750.cos.ap-nanjing.myqcloud.com/{g.user.user_id}{suffix}' + \
                                   '?imageMogr2/format/avif'
                     db.session.commit()

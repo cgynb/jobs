@@ -9,33 +9,33 @@ from exts import db
 from models import UserModel
 
 
-def create_token(user, refresh_token=False):
-    headers = {
+def create_token(user: UserModel, refresh_token: bool = False) -> str:
+    headers: dict = {
         "alg": "HS256",
         "typ": "JWT",
     }
-    exp = int(time.time() + 600) if refresh_token is False else int(time.time() + 3600 * 24 * 14)
-    payload = {
+    exp: int = int(time.time() + 600) if refresh_token is False else int(time.time() + 3600 * 24 * 14)
+    payload: dict = {
         "name": user.username,
         "user_id": user.user_id,
         "exp": exp,
         "iss": 'byszqq'
     }
-    key = current_app.config.get('JWT_SECRET_KEY')
+    key: str = current_app.config.get('JWT_SECRET_KEY')
     if refresh_token is True:
         u = UserModel.query.filter(UserModel.user_id == user.user_id).first()
         refresh_key = rand_str(6)
         u.refresh_key = refresh_key
         payload['refresh_key'] = refresh_key
         db.session.commit()
-    token = jwt.encode(payload=payload, key=key, algorithm='HS256', headers=headers)
+    token: str = jwt.encode(payload=payload, key=key, algorithm='HS256', headers=headers)
     return token
 
 
-def validate_token(token, refresh_token=False):
-    payload = None
-    msg = None
-    key = current_app.config.get('JWT_SECRET_KEY')
+def validate_token(token: str, refresh_token: bool = False) -> tuple[dict, str]:
+    payload: [dict, None] = None
+    msg: [str, None] = None
+    key: str = current_app.config.get('JWT_SECRET_KEY')
     try:
         payload = jwt.decode(jwt=token, key=key, algorithms=['HS256'], issuer='byszqq')
         if refresh_token is True:
@@ -57,4 +57,3 @@ def validate_token(token, refresh_token=False):
     except jwt.InvalidTokenError:
         msg = '非法的token'
     return payload, msg
-

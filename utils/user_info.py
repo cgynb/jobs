@@ -4,7 +4,7 @@ from qcloud_cos import CosS3Client
 from models import UserModel
 
 
-def user_obj(user_id=None):
+def user_obj(user_id: str = None) -> [UserModel, None]:
     user = UserModel.query.filter(UserModel.user_id == user_id).first()
     if user is not None:
         return user
@@ -12,7 +12,7 @@ def user_obj(user_id=None):
         return None
 
 
-def user_dict(user_id=None):
+def user_dict(user_id: str = None) -> [dict, None]:
     user = UserModel.query.filter(UserModel.user_id == user_id).first()
     if user is not None:
         return obj_to_dict(user)
@@ -20,7 +20,7 @@ def user_dict(user_id=None):
         return None
 
 
-def obj_to_dict(user=None):
+def obj_to_dict(user: UserModel = None) -> dict:
     if user is not None:
         return dict(username=user.username, avatar=user.avatar, email=user.email,
                     user_id=user.user_id, tags=tag_str_to_lst(user.tags))
@@ -28,20 +28,20 @@ def obj_to_dict(user=None):
         return dict()
 
 
-def tag_str_to_lst(tag_str):
+def tag_str_to_lst(tag_str: str) -> list:
     if tag_str is None:
         return list()
     return tag_str.split('|')[:-1]
 
 
-def tag_lst_to_str(tag_lst):
+def tag_lst_to_str(tag_lst: list) -> [str, None]:
     if not tag_lst:
         return None
     else:
         return '|'.join(tag_lst) + '|'
 
 
-def upload_avatar(user_id, photo_obj, suffix):
+def upload_avatar(user_id: str, photo_obj, suffix: str):
     config = CosConfig(Region=current_app.config.get('COS_REGION'),
                        SecretId=current_app.config.get('COS_SECRET_ID'),
                        SecretKey=current_app.config.get('COS_SECRET_KEY'))
