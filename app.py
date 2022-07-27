@@ -1,4 +1,4 @@
-from flask import Flask, g, request
+from flask import Flask, g, request, Response
 import click
 from sqlalchemy.exc import SQLAlchemyError
 from bps import user_bp, article_bp, admin_bp
@@ -46,7 +46,7 @@ def before_request():
 
 
 @app.after_request
-def after_request(resp):
+def after_request(resp) -> Response:
     if hasattr(g, 'refresh') and g.refresh is True:
         resp.headers['Authorization'] = 'refresh'
     if hasattr(g, 'user'):

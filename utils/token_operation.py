@@ -1,3 +1,4 @@
+import typing as t
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 import jwt
@@ -33,8 +34,8 @@ def create_token(user: UserModel, refresh_token: bool = False) -> str:
 
 
 def validate_token(token: str, refresh_token: bool = False) -> tuple[dict, str]:
-    payload: [dict, None] = None
-    msg: [str, None] = None
+    payload: t.Optional[dict] = None
+    msg: t.Optional[str] = None
     key: str = current_app.config.get('JWT_SECRET_KEY')
     try:
         payload = jwt.decode(jwt=token, key=key, algorithms=['HS256'], issuer='byszqq')

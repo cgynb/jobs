@@ -1,7 +1,7 @@
 import typing as t
-import pymongo
-from flask import Blueprint, request, jsonify, g
+from flask import Blueprint, request, jsonify, g, Response
 from flask.views import MethodView
+import pymongo
 from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
 from bson.objectid import ObjectId
@@ -14,29 +14,32 @@ from utils.log import Log
 from utils.role_limit import login_required
 from utils.user_info import user_dict, obj_to_dict
 from utils.others import rand_title_img
+from ai_package.recommend import recommend_ids
 
 bp = Blueprint('article', __name__, url_prefix='/api/v1/article')
 
 
 # TODO: POST ARTICLE
 class ArticleAPI(MethodView):
-    def get(self):  # 1. article_id[必选] -> 文章信息         2. page[可选|None] type[可选|None] article_id[None] 返回文章列表
-        article_id: [str, None] = request.args.get('article_id')
+    def get(self) -> Response:
+        # 1. article_id[必选] -> 文章信息
+        # 2. page[可选|None] type[可选|None] article_id[None] 返回文章列表
+        article_id: t.Optional[str] = request.args.get('article_id')
 
         page: str = request.args.get('page', default='1')
-        article_type: [str, None] = request.args.get('type')
+        article_type: t.Optional[str] = request.args.get('type')
         try:
             if article_id is None:  # 获取文章列表
                 if article_type is None:
-                    condition: dict = dict()
+                    condition: t.Mapping[str, t.Union[str, int]] = dict()
                 else:
-                    condition = {'type': article_type}
+                    condition: t.Mapping[str, t.Union[str, int]] = {'type': article_type}
                 each_page: int = 10
                 total_article: int = mongo.db.article.count_documents(condition)
                 total_page: int = total_article // each_page + 1 if total_article % each_page else total_article // each_page
                 articles: pymongo.cursor.Cursor = mongo.db.article.find(condition, {'comment': 0}). \
                     limit(each_page).skip((int(page) - 1) * 10)
-                article_lst: list = []
+                article_lst: list[dict] = []  # TODO: 把这个 type hint 写的详细点
                 for a in articles:
                     a['_id'] = str(a['_id'])
                     a['content'] = PQ(a['content']).text().replace('\n', '')[:100] + '. . . . . .'
@@ -46,11 +49,12 @@ class ArticleAPI(MethodView):
                                          'total_page': total_page, 'article': article_lst}})
             else:  # 获取一篇文章信息
                 if ObjectId.is_valid(article_id):
-                    article: dict = mongo.db.article.find_one({'_id': ObjectId(article_id)})
+                    article: dict = mongo.db.article.find_one({'_id': ObjectId(article_id)})  # TODO: 这个type hint 有点麻烦
                     if article is None:
                         return jsonify({'code': 404, 'message': "there's no such article"})
                     article['_id'] = str(article['_id'])
-                    user_id_dict: dict = dict()  # id到用户详细关系的映射 {id1: userinfo1, id2: userinfo2 ...}
+                    # id到用户详细关系的映射表user_id_dict =  {id1: userinfo1, id2: userinfo2 ...}
+                    user_id_dict: t.Mapping[str, t.Optional[t.Mapping[str, t.Union[str, list]]]] = dict()
                     # 第一个遍历获取到所有的user_id
                     for i in range(len(article['comment'])):
                         user_id: str = article['comment'][i]['comment_id'].split('-')[1]
@@ -63,7 +67,8 @@ class ArticleAPI(MethodView):
                             user_id_dict[user_id] = None
                             article['comment'][i]['subcomment'][ii]['send_time'] = send_time
                     # 从数据库中拿到评论中所有id
-                    user_obj_lst = UserModel.query.filter(UserModel.user_id.in_(user_id_dict.keys())).all()
+                    user_obj_lst: list[UserModel] = UserModel.query.\
+                        filter(UserModel.user_id.in_(user_id_dict.keys())).all()
                     # 将user_id_dict的每个id对应info
                     for key in user_id_dict.keys():
                         for u in user_obj_lst:
@@ -83,7 +88,7 @@ class ArticleAPI(MethodView):
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
 
-    def post(self):
+    def post(self) -> Response:
         title = request.form.get('title')
         title_img = request.form.get('title_img', default=rand_title_img())  # 唯一可空的元素
         article_content = request.form.get('article')
@@ -97,14 +102,14 @@ class ArticleAPI(MethodView):
 # TODO: DELETE ARTICLE COMMENT
 class CommentAPI(MethodView):
     @login_required
-    def post(self):
+    def post(self) -> Response:
         article_id: str = request.form.get('article_id')
         user_id: str = g.user.user_id
-        comment: [str, None] = request.form.get('comment', default=None)
-        comment_id: [str, None] = request.form.get('comment_id', default=None)
-        subcomment: [str, None] = request.form.get('subcomment', default=None)
+        comment: t.Optional[str] = request.form.get('comment', default=None)
+        comment_id: t.Optional[str] = request.form.get('comment_id', default=None)
+        subcomment: t.Optional[str] = request.form.get('subcomment', default=None)
         if ObjectId.is_valid(article_id):
-            try:
+            try:  # TODO: 这个article也是 type hint
                 article: dict = mongo.db.article.find_one({'_id': ObjectId(article_id)}, {'comment': 1})
                 if article is None:
                     return jsonify({'code': 404, 'message': "there's no such article"})
@@ -156,15 +161,18 @@ class CommentAPI(MethodView):
 
 
 class RecommendAPI(MethodView):
-    def get(self):
+    def get(self) -> Response:
         lc: bool = True if request.args.get('lc', default=False) == 'true' else False
+
         ai: bool = True if request.args.get('ai', default=False) == 'true' else False
-        condition: dict = {'type': request.args.get('type')} if request.args.get('type') is not None else {}
+        cur_article_id = request.args.get('article_id')
+        condition: t.Mapping[str, str] = \
+            {'type': request.args.get('type')} if request.args.get('type') else {}
         if lc is True and ai is False:
             try:
                 articles: pymongo.cursor.Cursor = mongo.db.article.find(condition, {'content': 0, 'comment': 0}). \
                     sort([('like', pymongo.DESCENDING), ('collect', pymongo.DESCENDING)]).limit(5)
-                article_lst: list = list()
+                article_lst: list[dict] = list()  # TODO: type hint
                 for article in articles:
                     article['_id'] = str(article['_id'])
                     article_lst.append(article)
@@ -173,8 +181,19 @@ class RecommendAPI(MethodView):
                 Log.error(e)
                 return jsonify({'code': 500, 'message': 'database error'})
         elif lc is False and ai is True:
-            # TODO: 坐等gbq给接口
-            return jsonify({'code': 200, 'message': 'success', 'data': "等gbq"})
+            if cur_article_id is not None:
+                if ObjectId.is_valid(cur_article_id):
+                    article_id_lst = recommend_ids(cur_article_id)
+                    articles = mongo.db.article.find({'_id': {'$in': article_id_lst}}, {'content': 0, 'comment': 0})
+                    article_lst: list[dict] = list()  # TODO: type hint
+                    for article in articles:
+                        article['_id'] = str(article['_id'])
+                        article_lst.append(article)
+                    return jsonify({'code': 200, 'message': 'success', 'data': article_lst})
+                else:
+                    return jsonify({'code': 400, 'message': 'article_id invalid'})
+            else:
+                return jsonify({'code': 400, 'message': 'lose params (current article id)'})
         elif lc is False and ai is False:
             return jsonify({'code': 400, 'message': 'params error (both false)'})
         elif lc is True and ai is True:
@@ -183,11 +202,11 @@ class RecommendAPI(MethodView):
 
 # like and collect
 class LCAPI(MethodView):
-    def get(self):
+    def get(self) -> Response:
         article_id: str = request.args.get('article_id')
         try:
             if ObjectId.is_valid(article_id):
-                article: dict = mongo.db.article.find_one({'_id': ObjectId(article_id)})
+                article: dict = mongo.db.article.find_one({'_id': ObjectId(article_id)})  # TODO: type hint
                 if article is None:
                     return jsonify({'code': 404, 'message': "there's no such article"})
                 else:
@@ -214,7 +233,7 @@ class LCAPI(MethodView):
             return jsonify({'code': 500, 'message': 'database error'})
 
     @login_required
-    def put(self):
+    def put(self) -> Response:
         like: str = str(request.form.get('like'))  # 0: 不改动 1: 点赞 -1: 取消点赞
         collect: str = str(request.form.get('collect'))  # 0: 不改动 1: 收藏 -1 : 取消收藏
         article_id: str = request.form.get('article_id')
