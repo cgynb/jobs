@@ -15,7 +15,7 @@ from exts import db, mail
 from models import UserModel, CaptchaModel
 from utils.token_operation import validate_token
 from utils.log import Log
-from utils.user_info import obj_to_dict, upload_avatar, tag_str_to_lst, tag_lst_to_str
+from utils.user_info import obj_to_dict, upload_avatar
 from utils.role_limit import login_required
 from utils.others import rand_str
 
@@ -135,12 +135,25 @@ class UserAPI(MethodView):
 
         new_username: str = request.form.get('username')
         try:
-            new_tags: t.Optional[str] = tag_lst_to_str(ast.literal_eval(request.form.get('tags')))
-        except ValueError as e:
+            if request.form.get('tags') is not None:
+                new_tags: t.Optional[list[str]] = ast.literal_eval(request.form.get('tags'))
+                if not isinstance(new_tags, list):
+                    return jsonify({'code': 400, 'message': 'tags format error (need a list)'})
+                elif len(new_tags) > 7:
+                    return jsonify({'code': 400, 'message': 'up to 7 tags'})
+                elif not all(len(_) <= 10 for _ in new_tags):
+                    return jsonify({'code': 400, 'message': 'some of these tags is too long (limit 10 characters)'})
+            else:
+                new_tags = None
+        except TypeError as e:  # 需要列表中都是str
             Log.error(e)
-            return jsonify({'code': 400, 'message': 'tags format error'})
+            return jsonify({'code': 400, 'message': 'tags format error (need list[str])'})
+        except ValueError as e:  # 传过来的tags列表字符串有问题
+            Log.error(e)
+            return jsonify({'code': 400, 'message': 'tags format error (the list is not safety)'})
 
         new_avatar: t.Any = request.files.get('avatar')
+
         if captcha_str is not None and new_pwd is not None:
             if len(new_pwd) < 6:
                 return jsonify({'code': 403, 'message': 'your password is too short'})
@@ -159,14 +172,12 @@ class UserAPI(MethodView):
                 Log.error(e)
         elif new_username is not None and new_tags is not None:
             if hasattr(g, 'user') and g.user is not None:
-                if new_username == g.user.username:
-                    return jsonify({'code': 403, 'message': 'this name is the same as current'})
                 try:
                     check_user: UserModel = UserModel.query.filter(UserModel.username == new_username).first()
-                    if check_user is None:
+                    if check_user is None or check_user.username == g.user.username:
                         user: UserModel = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
                         user.username = new_username
-                        user.tags = new_tags
+                        user.tags = str(new_tags)
                         db.session.commit()
                         return jsonify({'code': 200, 'message': 'success', 'data': obj_to_dict(user)})
                     else:

@@ -22,8 +22,18 @@ bp = Blueprint('article', __name__, url_prefix='/api/v1/article')
 # TODO: POST ARTICLE
 class ArticleAPI(MethodView):
     def get(self) -> Response:
-        # 1. article_id[必选] -> 文章信息
-        # 2. page[可选|None] type[可选|None] article_id[None] 返回文章列表
+        """
+        param group 1:
+            article_id[must]
+            page[useless]
+            type[useless]
+            :return: 文章信息
+        param group 2:
+            page[optional]
+            type[optional]
+            article_id[mustn't]
+            :return: 文章列表
+        """
         article_id: t.Optional[str] = request.args.get('article_id')
 
         page: str = request.args.get('page', default='1')
@@ -87,22 +97,31 @@ class ArticleAPI(MethodView):
         except PyMongoError as e:
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
-
-    def post(self) -> Response:
-        title = request.form.get('title')
-        title_img = request.form.get('title_img', default=rand_title_img())  # 唯一可空的元素
-        article_content = request.form.get('article')
-        if len(article_content.strip()) == 0:
-            return jsonify({'code': 403, 'message': 'the length of the content is 0'})
-        elif len(title.strip()) == 0:
-            return jsonify({'code': 403, 'message': 'the length of the title is 0'})
-        return jsonify({'code': 200, 'message': 'success'})
+        except ValueError as e:
+            Log.error(e)
+            return jsonify({'code': 400, 'message': f'params error: {request.args.to_dict()}'})
 
 
 # TODO: DELETE ARTICLE COMMENT
 class CommentAPI(MethodView):
     @login_required
     def post(self) -> Response:
+        """
+        param group 1:
+            发送评论
+            article_id[must]
+            comment[must]
+            comment_id[useless]
+            subcomment[useless]
+            :return: 发送的那条评论的信息
+        param group 2:
+            发送子评论
+            article_id[must]
+            comment[mustn't]
+            comment_id[must]
+            subcomment[must]
+            :return: 发送的子评论的信息
+        """
         article_id: str = request.form.get('article_id')
         user_id: str = g.user.user_id
         comment: t.Optional[str] = request.form.get('comment', default=None)
@@ -162,6 +181,22 @@ class CommentAPI(MethodView):
 
 class RecommendAPI(MethodView):
     def get(self) -> Response:
+        """
+        param group 1:
+            获取热门文章
+            lc[True]
+            ai[False]
+            article_id[useless]
+            type[optional]
+            :return: 热门文章列表
+        parma group 2:
+            获取ai分析文章
+            lc[True]
+            ai[False]
+            article_id[must]
+            type[useless]
+            :return: ai推荐文章列表
+        """
         lc: bool = True if request.args.get('lc', default=False) == 'true' else False
 
         ai: bool = True if request.args.get('ai', default=False) == 'true' else False
@@ -203,37 +238,83 @@ class RecommendAPI(MethodView):
 # like and collect
 class LCAPI(MethodView):
     def get(self) -> Response:
+        """
+        param group 1:
+            article_id[must]
+            :return: 判断用户是否点赞关注
+        param group 2:
+            article_id[mustn't]
+            page[optional]
+            :return: 用户收藏列表
+        """
         article_id: str = request.args.get('article_id')
-        try:
-            if ObjectId.is_valid(article_id):
-                article: dict = mongo.db.article.find_one({'_id': ObjectId(article_id)})  # TODO: type hint
-                if article is None:
-                    return jsonify({'code': 404, 'message': "there's no such article"})
-                else:
-                    if hasattr(g, 'user'):
-                        user_id: str = g.user.user_id
-                        like_obj: LikeModel = LikeModel.query.filter(and_(LikeModel.user_id == user_id,
-                                                                          LikeModel.article_id == article_id)).first()
-                        collect_obj: CollectModel = CollectModel.query.filter(and_(CollectModel.user_id == user_id,
-                                                                                   CollectModel.article_id == article_id)).first()
-                        return jsonify({'code': 200, 'message': 'success',
-                                        'data': {'article': {'like': article['like'], 'collect': article['collect']},
-                                                 'user': {'like': bool(like_obj), 'collect': bool(collect_obj)}}})
+        page: str = request.args.get('page', default='1')
+        if article_id is not None:
+            try:
+                if ObjectId.is_valid(article_id):
+                    article: dict = mongo.db.article.find_one({'_id': ObjectId(article_id)})  # TODO: type hint
+                    if article is None:
+                        return jsonify({'code': 404, 'message': "there's no such article"})
                     else:
-                        return jsonify({'code': 200, 'message': 'success',
-                                        'data': {'article': {'like': article['like'], 'collect': article['collect']},
-                                                 'user': {'like': False, 'collect': False}}})
-            else:
-                return jsonify({'code': 400, 'message': 'article_id invalid'})
-        except SQLAlchemyError as e:
-            Log.error(e)
-            return jsonify({'code': 500, 'message': 'database error'})
-        except PyMongoError as e:
-            Log.error(e)
-            return jsonify({'code': 500, 'message': 'database error'})
+                        if hasattr(g, 'user'):
+                            user_id: str = g.user.user_id
+                            like_obj: LikeModel = LikeModel.query.filter(and_(LikeModel.user_id == user_id,
+                                                                              LikeModel.article_id == article_id)).first()
+                            collect_obj: CollectModel = CollectModel.query.filter(and_(CollectModel.user_id == user_id,
+                                                                                       CollectModel.article_id == article_id)).first()
+                            return jsonify({'code': 200, 'message': 'success',
+                                            'data': {'article': {'like': article['like'], 'collect': article['collect']},
+                                                     'user': {'like': bool(like_obj), 'collect': bool(collect_obj)}}})
+                        else:
+                            return jsonify({'code': 200, 'message': 'success',
+                                            'data': {'article': {'like': article['like'], 'collect': article['collect']},
+                                                     'user': {'like': False, 'collect': False}}})
+                else:
+                    return jsonify({'code': 400, 'message': 'article_id invalid'})
+            except SQLAlchemyError as e:
+                Log.error(e)
+                return jsonify({'code': 500, 'message': 'database error'})
+            except PyMongoError as e:
+                Log.error(e)
+                return jsonify({'code': 500, 'message': 'database error'})
+        else:
+            each_page: int = 10
+            total_collect: int = 0
+            total_page: int = 0
+            collect_lst: list[dict] = []
+            if hasattr(g, 'user'):
+                article_id_lst: list[ObjectId] = []
+                total_collect: int = CollectModel.query.filter(CollectModel.user_id == g.user.user_id).count()
+                total_page: int = total_collect // each_page + 1 if total_collect % each_page else total_collect // each_page
+                collects: list[CollectModel] = CollectModel.query.filter(CollectModel.user_id == g.user.user_id).\
+                    offset(each_page * (int(page) - 1)).limit(each_page).all()
+                for c in collects:
+                    article_id_lst.append(ObjectId(c.article_id))
+                collect_gen: pymongo.cursor.Cursor = mongo.db.article.find({'_id': {'$in': article_id_lst}},
+                                                                           {'content': 0, 'comment': 0})
+                for c in collect_gen:
+                    c['_id'] = str(c['_id'])
+                    collect_lst.append(c)
+            return jsonify({'code': 200, 'message': 'success',
+                            'data': {'current_page': page, 'total_collect': total_collect,
+                                     'total_page': total_page, 'collect': collect_lst}})
 
     @login_required
     def put(self) -> Response:
+        """
+        param group 1:
+            点赞
+            like['1', '-1']
+            collect['0']
+            article_id[must]
+            :return:
+        param group 2:
+            收藏
+            like['0']
+            collect['1', '-1']
+            article_id[must]
+            :return
+        """
         like: str = str(request.form.get('like'))  # 0: 不改动 1: 点赞 -1: 取消点赞
         collect: str = str(request.form.get('collect'))  # 0: 不改动 1: 收藏 -1 : 取消收藏
         article_id: str = request.form.get('article_id')

@@ -1,6 +1,8 @@
 import random
+import uuid
 from exts import db
 from utils.others import user_img_lst
+import time
 
 
 class UserModel(db.Model):
@@ -11,7 +13,7 @@ class UserModel(db.Model):
     email = db.Column(db.String(100), nullable=False, unique=True)
     password = db.Column(db.String(200), nullable=False)
     avatar = db.Column(db.String(200), nullable=True, default=lambda: user_img_lst[random.randint(0, len(user_img_lst)-1)])
-    tags = db.Column(db.String(100))
+    tags = db.Column(db.String(100), default='[]')
     refresh_key = db.Column(db.String(20))
 
 
