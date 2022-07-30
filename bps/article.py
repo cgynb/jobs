@@ -278,11 +278,9 @@ class LCAPI(MethodView):
                 Log.error(e)
                 return jsonify({'code': 500, 'message': 'database error'})
         else:
-            each_page: int = 10
-            total_collect: int = 0
-            total_page: int = 0
-            collect_lst: list[dict] = []
             if hasattr(g, 'user'):
+                each_page: int = 10
+                collect_lst: list[dict] = []
                 article_id_lst: list[ObjectId] = []
                 total_collect: int = CollectModel.query.filter(CollectModel.user_id == g.user.user_id).count()
                 total_page: int = total_collect // each_page + 1 if total_collect % each_page else total_collect // each_page
@@ -291,13 +289,16 @@ class LCAPI(MethodView):
                 for c in collects:
                     article_id_lst.append(ObjectId(c.article_id))
                 collect_gen: pymongo.cursor.Cursor = mongo.db.article.find({'_id': {'$in': article_id_lst}},
-                                                                           {'content': 0, 'comment': 0})
+                                                                           {'comment': 0})
                 for c in collect_gen:
                     c['_id'] = str(c['_id'])
+                    c['content'] = PQ(c['content']).text().replace('\n', '')[:50] + '. . . . . .'
                     collect_lst.append(c)
-            return jsonify({'code': 200, 'message': 'success',
-                            'data': {'current_page': page, 'total_collect': total_collect,
-                                     'total_page': total_page, 'collect': collect_lst}})
+                return jsonify({'code': 200, 'message': 'success',
+                                'data': {'current_page': page, 'total_collect': total_collect,
+                                         'total_page': total_page, 'collect': collect_lst}})
+            else:
+                return jsonify({'code': 403, 'message': 'login required'})
 
     @login_required
     def put(self) -> Response:
