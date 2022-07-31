@@ -15,7 +15,6 @@ from models import UserModel, CaptchaModel
 from utils.token_operation import validate_token
 from utils.log import Log
 from utils.user_info import obj_to_dict, upload_avatar
-from utils.role_limit import login_required
 from utils.others import rand_str
 
 bp = Blueprint('user', __name__, url_prefix='/user')
