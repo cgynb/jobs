@@ -1,13 +1,14 @@
 from flask import current_app, request
+import typing as t
 
 
 class Log:
     @staticmethod
-    def warning(msg) -> None:
+    def warning(msg: t.Any) -> None:
         current_app.logger.warning(request.remote_addr + '  ' + str(msg))
 
     @staticmethod
-    def error(msg) -> None:
+    def error(msg: t.Any) -> None:
         current_app.logger.error(request.remote_addr + '  ' + str(msg))
 
     @staticmethod

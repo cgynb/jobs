@@ -13,10 +13,9 @@ from models import LikeModel, CollectModel, UserModel
 from utils.log import Log
 from utils.role_limit import login_required
 from utils.user_info import user_dict, obj_to_dict
-from utils.others import rand_title_img
 from ai_package.recommend import recommend_ids
 
-bp = Blueprint('article', __name__, url_prefix='/api/v1/article')
+bp = Blueprint('article', __name__, url_prefix='/article')
 
 
 # TODO: POST ARTICLE
@@ -49,7 +48,12 @@ class ArticleAPI(MethodView):
                 total_page: int = total_article // each_page + 1 if total_article % each_page else total_article // each_page
                 articles: pymongo.cursor.Cursor = mongo.db.article.find(condition, {'comment': 0}). \
                     limit(each_page).skip((int(page) - 1) * 10)
-                article_lst: list[dict] = []  # TODO: 把这个 type hint 写的详细点
+                article_lst: list[
+                    t.Mapping[
+                        str,
+                        t.Union[int, str]
+                    ]
+                ] = []
                 for a in articles:
                     a['_id'] = str(a['_id'])
                     a['content'] = PQ(a['content']).text().replace('\n', '')[:100] + '. . . . . .'
@@ -59,7 +63,23 @@ class ArticleAPI(MethodView):
                                          'total_page': total_page, 'article': article_lst}})
             else:  # 获取一篇文章信息
                 if ObjectId.is_valid(article_id):
-                    article: dict = mongo.db.article.find_one({'_id': ObjectId(article_id)})  # TODO: 这个type hint 有点麻烦
+                    article: t.Mapping[
+                        str,
+                        int,
+                        list[
+                            t.Mapping[
+                                str,
+                                list[
+                                    t.Mapping[
+                                        str,
+                                        str
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ] = mongo.db.article.find_one({'_id': ObjectId(article_id)})
+                    from pprint import pprint
+                    pprint(article)
                     if article is None:
                         return jsonify({'code': 404, 'message': "there's no such article"})
                     article['_id'] = str(article['_id'])
@@ -77,7 +97,7 @@ class ArticleAPI(MethodView):
                             user_id_dict[user_id] = None
                             article['comment'][i]['subcomment'][ii]['send_time'] = send_time
                     # 从数据库中拿到评论中所有id
-                    user_obj_lst: list[UserModel] = UserModel.query.\
+                    user_obj_lst: list[UserModel] = UserModel.query. \
                         filter(UserModel.user_id.in_(user_id_dict.keys())).all()
                     # 将user_id_dict的每个id对应info
                     for key in user_id_dict.keys():
@@ -128,8 +148,21 @@ class CommentAPI(MethodView):
         comment_id: t.Optional[str] = request.form.get('comment_id', default=None)
         subcomment: t.Optional[str] = request.form.get('subcomment', default=None)
         if ObjectId.is_valid(article_id):
-            try:  # TODO: 这个article也是 type hint
-                article: dict = mongo.db.article.find_one({'_id': ObjectId(article_id)}, {'comment': 1})
+            try:
+                article: t.Mapping[str,
+                                   t.Union[
+                                       ObjectId,
+                                       list[
+                                           t.Mapping[
+                                               str,
+                                               t.Union[
+                                                   str,
+                                                   list[t.Mapping[str, str]]
+                                               ]
+                                           ]
+                                       ]
+                                   ]
+                ] = mongo.db.article.find_one({'_id': ObjectId(article_id)}, {'comment': 1})
                 if article is None:
                     return jsonify({'code': 404, 'message': "there's no such article"})
                 else:
@@ -142,7 +175,8 @@ class CommentAPI(MethodView):
                             mongo.db.article.update_one(
                                 {'_id': ObjectId(article_id)},  # 条件
                                 {'$addToSet': {
-                                    'comment': {'comment_id': comment_id, 'comment': comment, 'subcomment': []}}})
+                                    'comment': {'comment_id': comment_id, 'comment': comment, 'subcomment': []}
+                                }})
                             return jsonify({'code': 200, 'message': 'success',
                                             'data': {'comment_id': comment_id,
                                                      'comment': comment,
@@ -263,12 +297,14 @@ class LCAPI(MethodView):
                             collect_obj: CollectModel = CollectModel.query.filter(and_(CollectModel.user_id == user_id,
                                                                                        CollectModel.article_id == article_id)).first()
                             return jsonify({'code': 200, 'message': 'success',
-                                            'data': {'article': {'like': article['like'], 'collect': article['collect']},
-                                                     'user': {'like': bool(like_obj), 'collect': bool(collect_obj)}}})
+                                            'data': {
+                                                'article': {'like': article['like'], 'collect': article['collect']},
+                                                'user': {'like': bool(like_obj), 'collect': bool(collect_obj)}}})
                         else:
                             return jsonify({'code': 200, 'message': 'success',
-                                            'data': {'article': {'like': article['like'], 'collect': article['collect']},
-                                                     'user': {'like': False, 'collect': False}}})
+                                            'data': {
+                                                'article': {'like': article['like'], 'collect': article['collect']},
+                                                'user': {'like': False, 'collect': False}}})
                 else:
                     return jsonify({'code': 400, 'message': 'article_id invalid'})
             except SQLAlchemyError as e:
@@ -284,7 +320,7 @@ class LCAPI(MethodView):
                 article_id_lst: list[ObjectId] = []
                 total_collect: int = CollectModel.query.filter(CollectModel.user_id == g.user.user_id).count()
                 total_page: int = total_collect // each_page + 1 if total_collect % each_page else total_collect // each_page
-                collects: list[CollectModel] = CollectModel.query.filter(CollectModel.user_id == g.user.user_id).\
+                collects: list[CollectModel] = CollectModel.query.filter(CollectModel.user_id == g.user.user_id). \
                     offset(each_page * (int(page) - 1)).limit(each_page).all()
                 for c in collects:
                     article_id_lst.append(ObjectId(c.article_id))
@@ -378,9 +414,3 @@ class LCAPI(MethodView):
         except PyMongoError as e:
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
-
-
-bp.add_url_rule('/', view_func=ArticleAPI.as_view('article'), methods=['GET'])
-bp.add_url_rule('/lc/', view_func=LCAPI.as_view('like-collect'), methods=['GET', 'PUT'])
-bp.add_url_rule('/comment/', view_func=CommentAPI.as_view('comment'), methods=['POST'])
-bp.add_url_rule('/recommend/', view_func=RecommendAPI.as_view('recommend'), methods=['GET'])

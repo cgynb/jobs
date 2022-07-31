@@ -1,13 +1,12 @@
 from flask import Flask, g, request, Response
 import click
 from sqlalchemy.exc import SQLAlchemyError
-from bps import user_bp, article_bp, admin_bp
+from api import api_bp
 from utils.token_operation import validate_token, create_token
 from exts import db, migrate, mail, cors, mongo
 from models import UserModel
 import toml
 import logging
-from utils.role_limit import login_required
 from utils.log import Log
 
 
@@ -27,9 +26,7 @@ mail.init_app(app)
 cors.init_app(app, supports_credentials=True, expose_headers=['Authorization', 'refresh-token'])
 mongo.init_app(app)
 
-app.register_blueprint(user_bp)
-app.register_blueprint(article_bp)
-app.register_blueprint(admin_bp)
+app.register_blueprint(api_bp)
 
 
 @app.before_request
@@ -56,23 +53,13 @@ def after_request(resp) -> Response:
     return resp
 
 
-@app.route('/')
-@login_required
-def test_view():
-    # f = request.files.get('avatar')
-    # suffix = os.path.splitext(f.filename)[-1]
-    # user_id = '123'
-    # upload_avatar(user_id, f, suffix)
-    return 'test'
-
-
 @app.cli.command('start')
 @click.option('--port', type=int, default=5000, help='running port')
 def run(port):
     import eventlet
     from eventlet import wsgi
     eventlet.monkey_patch()
-    # wsgi.server(eventlet.listen(('0.0.0.0', port)), app)
+    wsgi.server(eventlet.listen(('0.0.0.0', port)), app)
 
 
 if __name__ == '__main__':

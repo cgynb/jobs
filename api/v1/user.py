@@ -1,4 +1,3 @@
-import ast
 import typing as t
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from smtplib import SMTPException
@@ -19,7 +18,7 @@ from utils.user_info import obj_to_dict, upload_avatar
 from utils.role_limit import login_required
 from utils.others import rand_str
 
-bp = Blueprint('user', __name__, url_prefix='/api/v1/user')
+bp = Blueprint('user', __name__, url_prefix='/user')
 
 
 class LoginAPI(MethodView):
@@ -210,9 +209,3 @@ class UserAPI(MethodView):
                 return jsonify({'code': 403, 'message': 'login required'})
         else:
             return jsonify({'code': 400, 'message': 'lost params'})
-
-
-bp.add_url_rule('/login/', view_func=LoginAPI.as_view('login'), methods=['POST'])
-bp.add_url_rule('/refresh/', view_func=RefreshAPI.as_view('refresh'), methods=['POST'])
-bp.add_url_rule('/captcha/', view_func=CaptchaAPI.as_view('captcha'), methods=['GET', 'POST'])
-bp.add_url_rule('/', view_func=UserAPI.as_view('user'), methods=['POST', 'PUT'])

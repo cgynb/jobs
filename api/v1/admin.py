@@ -1,7 +1,7 @@
 from flask import Blueprint
 from utils.role_limit import login_required
 
-bp = Blueprint('admin', __name__, url_prefix='/api/v1/admin')
+bp = Blueprint('admin', __name__, url_prefix='/admin')
 
 
 @bp.route('/log/', methods=['GET'])
