@@ -49,7 +49,7 @@ class ArticleAPI(MethodView):
                 ] = []
                 for a in articles:
                     a['_id'] = str(a['_id'])
-                    a['content'] = PQ(a['content']).text().replace('\n', '')[:100] + '. . . . . .'
+                    a['content'] = PQ(a['content']).text().replace('\n', '')[:220] + '. . . . . .'
                     article_lst.append(a)
                 return jsonify({'code': 200, 'message': 'success',
                                 'data': {'current_page': page, 'total_article': total_article,
@@ -58,14 +58,16 @@ class ArticleAPI(MethodView):
                 if ObjectId.is_valid(article_id):
                     article: t.Mapping[
                         str,
-                        int,
-                        list[
-                            t.Mapping[
-                                str,
-                                list[
-                                    t.Mapping[
-                                        str,
-                                        str
+                        t.Union[
+                            int,
+                            list[
+                                t.Mapping[
+                                    str,
+                                    list[
+                                        t.Mapping[
+                                            str,
+                                            str
+                                        ]
                                     ]
                                 ]
                             ]

@@ -1,5 +1,5 @@
 from pymongo.errors import PyMongoError
-from flask import Blueprint, jsonify, request, g
+from flask import jsonify, request, g
 from flask.views import MethodView
 import uuid
 import time

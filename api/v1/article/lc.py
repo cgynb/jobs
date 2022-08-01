@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, g, Response
+from flask import request, jsonify, g, Response
 from flask.views import MethodView
 import pymongo
 from sqlalchemy import and_
@@ -70,7 +70,7 @@ class LCAPI(MethodView):
                                                                            {'comment': 0})
                 for c in collect_gen:
                     c['_id'] = str(c['_id'])
-                    c['content'] = PQ(c['content']).text().replace('\n', '')[:50] + '. . . . . .'
+                    c['content'] = PQ(c['content']).text().replace('\n', '')[:180] + '. . . . . .'
                     collect_lst.append(c)
                 return jsonify({'code': 200, 'message': 'success',
                                 'data': {'current_page': page, 'total_collect': total_collect,

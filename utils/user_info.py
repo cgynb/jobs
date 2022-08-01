@@ -19,7 +19,7 @@ def user_dict(user_id: str = None) -> t.Optional[dict]:
     if user is not None:
         return obj_to_dict(user)
     else:
-        return None
+        return {}
 
 
 def obj_to_dict(user: UserModel = None) -> dict:

@@ -17,3 +17,16 @@
 <Rule '/api/v1/article/' (OPTIONS, GET, HEAD) -> api.v1.article.article>
 
 <Rule '/api/v1/user/' (PUT, OPTIONS, POST) -> api.v1.user.user>
+
+```python
+var = {
+    'str': 12,
+    'str': [
+        {
+            'str': [
+                {'str': 'str'}
+            ]
+        }
+    ]
+}
+```
