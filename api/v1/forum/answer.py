@@ -9,8 +9,6 @@ from utils.role_limit import login_required
 from utils.log import Log
 from utils.user_info import obj_to_dict, user_dict
 
-bp = Blueprint('answer', __name__, url_prefix='/answer')
-
 
 class AnswerAPI(MethodView):
     def get(self):

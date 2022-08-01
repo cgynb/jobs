@@ -1,105 +1,17 @@
-import typing as t
-from sqlalchemy.exc import SQLAlchemyError, IntegrityError
-from smtplib import SMTPException
-from flask import Blueprint, request, jsonify, g, Response
+from flask import Response, request, jsonify, g
 from flask.views import MethodView
-from flask_mail import Message
-from werkzeug.security import generate_password_hash, check_password_hash
-from qcloud_cos.cos_exception import CosClientError, CosServiceError
 import datetime
-import random
-import os
 import ast
-from exts import db, mail
-from models import UserModel, CaptchaModel
-from utils.token_operation import validate_token
-from utils.log import Log
-from utils.user_info import obj_to_dict, upload_avatar
+import os
+
+from qcloud_cos import CosClientError, CosServiceError
+from werkzeug.security import generate_password_hash
+from models import CaptchaModel, UserModel
+from exts import db
 from utils.others import rand_str
-
-bp = Blueprint('user', __name__, url_prefix='/user')
-
-
-class LoginAPI(MethodView):
-    def post(self) -> Response:
-        username: str = request.form.get('username')
-        password: str = request.form.get('password')
-        try:
-            cur_user: UserModel = UserModel.query.filter(UserModel.username == username).first()
-        except SQLAlchemyError as e:
-            Log.error(e)
-            return jsonify({'code': 500, 'message': 'database error'})
-        else:
-            if cur_user is None:
-                return jsonify({'code': 404, 'message': "there's no such user"})
-            if check_password_hash(cur_user.password, password):
-                g.user = cur_user
-                g.login = True
-                return jsonify({'code': 200, 'message': 'success', 'data': obj_to_dict(g.user)})
-            else:
-                return jsonify({'code': 403, 'message': 'your password is wrong'})
-
-
-class RefreshAPI(MethodView):
-    def post(self) -> Response:
-        refresh_token: str = request.form.get('refresh_token')
-        token, msg = validate_token(refresh_token, refresh_token=True)
-        g.refresh = False
-        if msg is None:
-            try:
-                user: UserModel = UserModel.query.filter(UserModel.user_id == token.get('user_id')).first()
-            except SQLAlchemyError as e:
-                Log.error(e)
-            else:
-                g.user = user
-            return jsonify({'code': 200, 'message': 'success'})
-        else:
-            return jsonify({'code': 403, 'message': 'please login again'})
-
-
-class CaptchaAPI(MethodView):
-    def get(self) -> Response:  # 4-8位的验证码
-        email: str = request.args.get('email')
-        captcha_len: int = random.randint(4, 8)
-        ret: str = rand_str(captcha_len)
-        if email:
-            try:
-                c: CaptchaModel = CaptchaModel.query.filter(CaptchaModel.email == email).first()
-                if c:
-                    c.captcha = ret
-                else:
-                    c: CaptchaModel = CaptchaModel(email=email, captcha=ret)
-                    db.session.add(c)
-                db.session.commit()
-                message: Message = Message(
-                    subject='求职',
-                    recipients=[email],
-                    body=f'验证码是：{ret}，请不要告诉他人',
-                )
-                mail.send(message)
-            except SMTPException as e:
-                Log.error(e)
-                return jsonify({'code': 500, 'message': 'smtp error'})
-            except SQLAlchemyError as e:
-                Log.error(e)
-                return jsonify({'code': 500, 'message': 'database error'})
-            else:
-                return jsonify({'code': 200, 'message': 'success'})
-        else:
-            return jsonify({'code': 400, 'message': 'lose params'})
-
-    def post(self) -> Response:
-        email: str = request.form.get('email')
-        c_str: str = request.form.get('captcha')
-        try:
-            c_obj: CaptchaModel = CaptchaModel.query.filter(CaptchaModel.email == email).first()
-        except SQLAlchemyError as e:
-            Log.error(e)
-        else:
-            if c_obj:
-                if c_obj.captcha == c_str:
-                    return jsonify({'code': 200, 'message': 'success'})
-        return jsonify({'code': 200, 'message': "fail"})
+from utils.user_info import upload_avatar, obj_to_dict
+from utils.log import Log
+from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
 
 class UserAPI(MethodView):

@@ -1,6 +1,5 @@
 from flask import Blueprint
-from .question import bp as question_bp
-from .answer import bp as answer_bp
+
 from .answer import AnswerAPI
 from .question import QuestionAPI
 
@@ -11,10 +10,8 @@ __all__ = [
 
 def bp_init():
     bp = Blueprint('forum', __name__, url_prefix='/forum')
-    question_bp.add_url_rule('/', view_func=QuestionAPI.as_view(''))
-    answer_bp.add_url_rule('/', view_func=AnswerAPI.as_view(''))
-    bp.register_blueprint(answer_bp)
-    bp.register_blueprint(question_bp)
+    bp.add_url_rule('/question/', view_func=QuestionAPI.as_view('question'))
+    bp.add_url_rule('/answer/', view_func=AnswerAPI.as_view('answer'))
     return bp
 
 

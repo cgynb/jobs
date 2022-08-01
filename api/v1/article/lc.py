@@ -11,8 +11,6 @@ from models import LikeModel, CollectModel
 from utils.log import Log
 from utils.role_limit import login_required
 
-bp = Blueprint('lc', __name__, url_prefix='/lc')
-
 
 class LCAPI(MethodView):
     def get(self) -> Response:

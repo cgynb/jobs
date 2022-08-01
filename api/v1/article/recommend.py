@@ -8,8 +8,6 @@ from exts import mongo
 from utils.log import Log
 from ai_package.recommend import recommend_ids
 
-bp = Blueprint('recommend', __name__, url_prefix='/recommend')
-
 
 class RecommendAPI(MethodView):
     def get(self) -> Response:

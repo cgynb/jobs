@@ -9,7 +9,6 @@ from exts import mongo
 from models import UserModel
 from utils.log import Log
 from utils.user_info import obj_to_dict
-bp = Blueprint('', __name__, url_prefix='/')
 
 
 # TODO: POST ARTICLE

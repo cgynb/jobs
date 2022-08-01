@@ -8,8 +8,6 @@ from exts import mongo
 from utils.role_limit import login_required
 from utils.log import Log
 
-bp = Blueprint('question', __name__, url_prefix='/question')
-
 
 class QuestionAPI(MethodView):
     def get(self):

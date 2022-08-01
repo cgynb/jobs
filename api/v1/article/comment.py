@@ -9,8 +9,6 @@ from utils.log import Log
 from utils.role_limit import login_required
 from utils.user_info import user_dict
 
-bp = Blueprint('comment', __name__, url_prefix='/comment')
-
 
 # TODO: DELETE ARTICLE COMMENT
 class CommentAPI(MethodView):
