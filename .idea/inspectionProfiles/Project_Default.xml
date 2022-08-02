@@ -33,6 +33,7 @@
           <option value="N801" />
           <option value="N802" />
           <option value="N806" />
+          <option value="N814" />
         </list>
       </option>
     </inspection_tool>
@@ -47,6 +48,8 @@
           <option value="dict.comment" />
           <option value="filter.__getitem__" />
           <option value="requests.models.Response.__await__" />
+          <option value="typing.Mapping.__setitem__" />
+          <option value="list.split" />
         </list>
       </option>
     </inspection_tool>

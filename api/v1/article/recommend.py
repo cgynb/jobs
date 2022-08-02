@@ -6,7 +6,6 @@ from bson.objectid import ObjectId
 from pymongo.errors import PyMongoError
 from exts import mongo
 from utils.log import Log
-from ai_package.recommend import recommend_ids
 
 
 class RecommendAPI(MethodView):
@@ -48,7 +47,8 @@ class RecommendAPI(MethodView):
         elif lc is False and ai is True:
             if cur_article_id is not None:
                 if ObjectId.is_valid(cur_article_id):
-                    article_id_lst = recommend_ids(cur_article_id)
+                    # article_id_lst = recommend_ids(cur_article_id)
+                    article_id_lst = []
                     articles = mongo.db.article.find({'_id': {'$in': article_id_lst}}, {'content': 0, 'comment': 0})
                     article_lst: list[dict] = list()  # TODO: type hint
                     for article in articles:

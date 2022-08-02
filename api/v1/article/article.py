@@ -1,5 +1,5 @@
 import typing as t
-from flask import request, jsonify, Blueprint, Response
+from flask import request, jsonify, Response
 from flask.views import MethodView
 import pymongo
 from bson.objectid import ObjectId

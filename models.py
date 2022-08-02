@@ -1,8 +1,6 @@
 import random
-import uuid
 from exts import db
 from utils.others import user_img_lst
-import time
 
 
 class UserModel(db.Model):

@@ -42,7 +42,7 @@ class AnswerAPI(MethodView):
         try:
             mongo.db.question.update_one({'question_id': question_id}, {'$addToSet': {'answer_ids': answer_id}})
             mongo.db.answer.insert_one({'answer_id': answer_id, 'answer_content': answer_content,
-                                        'send_time': send_time, 'user_id': g.user.user_id})
+                                        'send_time': send_time, 'user_id': g.user.user_id, 'username': g.user.username})
         except PyMongoError as e:
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
