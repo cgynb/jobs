@@ -34,6 +34,7 @@ class QuestionAPI(MethodView):
         try:
             if question_id is not None:
                 question = mongo.db.question.find_one({'question_id': question_id}, {'_id': 0})
+                question |= user_dict(question.get('user_id'))
                 return jsonify({'code': 200, 'message': 'success', 'data': question})
             else:
                 each_page = 10
@@ -42,9 +43,11 @@ class QuestionAPI(MethodView):
                     condition['username'] = {'$regex': f'.*{username}.*'}
                 elif title is not None:
                     condition['question_title'] = {'$regex': f'.*{title}.*'}
-                total_question = mongo.db.article.count_documents(condition)
+                total_question = mongo.db.question.count_documents(condition)
                 total_page = total_question // each_page + 1 if total_question % each_page else total_question // each_page
-                questions = mongo.db.question.find(condition, {'_id': 0, 'answer_ids': 0}).limit(each_page)
+                questions = mongo.db.question.find(condition, {'_id': 0, 'answer_ids': 0}).sort(
+                    [('send_time', -1)]).limit(each_page).skip((int(page) - 1) * each_page)
+
                 question_lst = [question for question in questions]
                 for i in range(len(question_lst)):
                     question_lst[i] |= user_dict(question_lst[i].get('user_id'))
