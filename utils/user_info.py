@@ -24,8 +24,8 @@ def user_dict(user_id: str = None) -> t.Optional[dict]:
 
 def obj_to_dict(user: UserModel = None) -> dict:
     if user is not None:
-        return dict(username=user.username, avatar=user.avatar, email=user.email,
-                    user_id=user.user_id, tags=ast.literal_eval(user.tags))
+        return dict(username=user.username, avatar=user.avatar, email=user.email, role=user.role,
+                    forbid=user.forbid, user_id=user.user_id, tags=ast.literal_eval(user.tags))
     else:
         return dict()
 

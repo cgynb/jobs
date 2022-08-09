@@ -1,6 +1,7 @@
 import random
 from exts import db
 from utils.others import user_img_lst
+import time
 
 
 class UserModel(db.Model):
@@ -13,6 +14,8 @@ class UserModel(db.Model):
     avatar = db.Column(db.String(200), nullable=True,
                        default=lambda: user_img_lst[random.randint(0, len(user_img_lst) - 1)])
     tags = db.Column(db.String(100), default='[]')
+    role = db.Column(db.Integer, default=1)
+    forbid = db.Column(db.Integer, default=lambda: int(time.time()))
     refresh_key = db.Column(db.String(20))
 
 

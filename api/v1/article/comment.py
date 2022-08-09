@@ -1,18 +1,19 @@
 import typing as t
-from flask import Blueprint, request, jsonify, g, Response
+from flask import request, jsonify, g, Response
 from flask.views import MethodView
 from bson.objectid import ObjectId
 from pymongo.errors import PyMongoError
 import time
 from exts import mongo
 from utils.log import Log
-from utils.role_limit import login_required
+from utils.limit import Limiter
 from utils.user_info import user_dict
 
 
 # TODO: DELETE ARTICLE COMMENT
 class CommentAPI(MethodView):
-    @login_required
+    @Limiter()
+    @Limiter('speaker')
     def post(self) -> Response:
         """
         param group 1:

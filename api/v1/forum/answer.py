@@ -6,7 +6,7 @@ import time
 import ast
 import typing as t
 from exts import mongo
-from utils.role_limit import login_required
+from utils.limit import Limiter
 from utils.log import Log
 from utils.user_info import obj_to_dict, user_dict
 
@@ -32,7 +32,8 @@ class AnswerAPI(MethodView):
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
 
-    @login_required
+    @Limiter()
+    @Limiter('speaker')
     def post(self):
         question_id: str = request.form.get('question_id')
         answer_content: str = request.form.get('content')

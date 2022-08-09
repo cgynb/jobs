@@ -9,7 +9,7 @@ from pyquery import PyQuery as PQ
 from exts import mongo, db
 from models import LikeModel, CollectModel
 from utils.log import Log
-from utils.role_limit import login_required
+from utils.limit import Limiter
 
 
 class LCAPI(MethodView):
@@ -78,7 +78,7 @@ class LCAPI(MethodView):
             else:
                 return jsonify({'code': 403, 'message': 'login required'})
 
-    @login_required
+    @Limiter('user')
     def put(self) -> Response:
         """
         param group 1:

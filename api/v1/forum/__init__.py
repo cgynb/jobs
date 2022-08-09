@@ -8,7 +8,7 @@ __all__ = [
 ]
 
 
-def bp_init():
+def bp_init() -> Blueprint:
     bp = Blueprint('forum', __name__, url_prefix='/forum')
     bp.add_url_rule('/question/', view_func=QuestionAPI.as_view('question'))
     bp.add_url_rule('/answer/', view_func=AnswerAPI.as_view('answer'))
