@@ -9,7 +9,7 @@ from werkzeug.security import generate_password_hash
 from models import CaptchaModel, UserModel
 from exts import db
 from utils.others import rand_str
-from utils.user_info import upload_avatar, obj_to_dict
+from utils.user_info import upload_photo, obj_to_dict
 from utils.log import Log
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 
@@ -101,7 +101,7 @@ class UserAPI(MethodView):
             if hasattr(g, 'user') and g.user is not None:
                 try:
                     suffix: str = os.path.splitext(new_avatar.filename)[-1]
-                    upload_avatar(g.user.user_id, new_avatar, suffix)
+                    upload_photo(new_avatar, 'avatar-' + g.user.user_id + '-' + rand_str(6), suffix)
                     user: UserModel = UserModel.query.filter(UserModel.user_id == g.user.user_id).first()
                     user.avatar = f'https://byszqq-1310478750.cos.ap-nanjing.myqcloud.com/{g.user.user_id}{suffix}'
                     db.session.commit()

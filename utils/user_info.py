@@ -30,7 +30,7 @@ def obj_to_dict(user: UserModel = None) -> dict:
         return dict()
 
 
-def upload_avatar(user_id: str, photo_obj, suffix: str) -> None:
+def upload_photo(photo_obj, photo_name: str, suffix: str) -> None:
     config = CosConfig(Region=current_app.config.get('COS_REGION'),
                        SecretId=current_app.config.get('COS_SECRET_ID'),
                        SecretKey=current_app.config.get('COS_SECRET_KEY'))
@@ -38,6 +38,6 @@ def upload_avatar(user_id: str, photo_obj, suffix: str) -> None:
     client.put_object(
         Bucket=current_app.config.get('COS_BUCKET'),
         Body=photo_obj,
-        Key=f'{user_id}{suffix}',
+        Key=f'{photo_name}{suffix}',
         StorageClass='STANDARD',
     )

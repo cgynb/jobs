@@ -34,8 +34,11 @@ class QuestionAPI(MethodView):
         try:
             if question_id is not None:
                 question = mongo.db.question.find_one({'question_id': question_id}, {'_id': 0})
-                question |= user_dict(question.get('user_id'))
-                return jsonify({'code': 200, 'message': 'success', 'data': question})
+                if question is not None:
+                    question |= user_dict(question.get('user_id'))
+                    return jsonify({'code': 200, 'message': 'success', 'data': question})
+                else:
+                    return jsonify({'code': 404, 'message': "there's no such question"})
             else:
                 each_page = 10
                 condition = dict()
