@@ -2,7 +2,7 @@ from flask import Blueprint
 
 from .user import user_bp
 from .article import article_bp
-from .admin import bp as admin_bp
+from .admin import admin_bp
 from .forum import forum_bp
 
 

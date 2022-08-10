@@ -58,7 +58,6 @@ class QuestionAPI(MethodView):
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
 
-    @Limiter()
     @Limiter('speaker')
     def post(self):
         try:
@@ -78,3 +77,7 @@ class QuestionAPI(MethodView):
         except PyMongoError as e:
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
+
+    @Limiter('admin')
+    def delete(self):  # TODO: 删除回答
+        ...

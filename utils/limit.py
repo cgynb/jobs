@@ -25,11 +25,18 @@ class Limiter:
 
     def __init__(self, role='user'):
         self.role = self.ROLES.get(role) if self.ROLES.get(role) is not None else self.ROLES.get('user')
+        self.validate_func = self.role.get('validate_func')
 
     def __call__(self, func):
         @wraps(func)
         def wrapper(*args, **kwargs):
-            if hasattr(g, 'user') and self.role.get('validate_func')(g.user, self.role.get('code')):
-                return func(*args, **kwargs)
-            return jsonify({'code': 403, 'message': self.role.get('message')})
+            if hasattr(g, 'user'):
+                if self.validate_func(g.user, self.role.get('code')):
+                    return func(*args, **kwargs)
+                else:
+                    return jsonify({'code': 403, 'message': self.role.get('message')})
+            else:
+                return jsonify({'code': 403, 'message': 'login required'})
         return wrapper
+
+

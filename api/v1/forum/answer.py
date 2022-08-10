@@ -32,7 +32,6 @@ class AnswerAPI(MethodView):
             Log.error(e)
             return jsonify({'code': 500, 'message': 'database error'})
 
-    @Limiter()
     @Limiter('speaker')
     def post(self):
         question_id: str = request.form.get('question_id')
@@ -50,3 +49,14 @@ class AnswerAPI(MethodView):
         return jsonify({'code': 200, 'message': 'success',
                         'data': {'answer_content': answer_content, 'answer_id': answer_id,
                                  'send_time': send_time, 'user': user}})
+
+    @Limiter('admin')
+    def delete(self):
+        answer_id = request.form.get('answer_id')
+        question_id = request.form.get('question_id')
+        mongo.db.answer.delete_one({'answer_id': answer_id})
+        mongo.db.question.update_one(
+            {'question_id': question_id},
+            {'$pull': {'answer_ids': answer_id}}
+        )
+        return jsonify({'code': 200, 'message': 'success'})
