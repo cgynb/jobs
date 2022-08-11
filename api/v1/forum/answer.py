@@ -54,9 +54,11 @@ class AnswerAPI(MethodView):
     def delete(self):
         answer_id = request.form.get('answer_id')
         question_id = request.form.get('question_id')
-        mongo.db.answer.delete_one({'answer_id': answer_id})
-        mongo.db.question.update_one(
+        del_result = mongo.db.answer.delete_one({'answer_id': answer_id})
+        update_result = mongo.db.question.update_one(
             {'question_id': question_id},
             {'$pull': {'answer_ids': answer_id}}
         )
+        if del_result.deleted_count == 0 or update_result.matched_count == 0:
+            return jsonify({'code': 404, 'message': "there's no such answer"})
         return jsonify({'code': 200, 'message': 'success'})

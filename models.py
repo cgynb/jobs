@@ -7,7 +7,7 @@ import time
 class UserModel(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.String(30), nullable=False, unique=True)
+    user_id = db.Column(db.String(30), nullable=False, unique=True, index=True)
     username = db.Column(db.String(200), nullable=False, unique=True)
     email = db.Column(db.String(100), nullable=False, unique=True)
     password = db.Column(db.String(200), nullable=False)
@@ -38,3 +38,22 @@ class CollectModel(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     article_id = db.Column(db.String(50), nullable=False)
     user_id = db.Column(db.String(30), db.ForeignKey("user.user_id"), nullable=False)
+
+
+class TopicModel(db.Model):
+    __tablename__ = 'topic'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    topic_id = db.Column(db.String(50), nullable=False)
+    topic_content = db.Column(db.String(200), nullable=False)
+    op1 = db.Column(db.String(50))
+    op2 = db.Column(db.String(50))
+    op3 = db.Column(db.String(50))
+    op4 = db.Column(db.String(50))
+
+
+class VoteModel(db.Model):
+    __tablename__ = 'vote'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    topic_id = db.Column(db.String(50), nullable=False)
+    user_id = db.Column(db.String(30), nullable=False)
+    op = db.Column(db.SmallInteger, nullable=False)

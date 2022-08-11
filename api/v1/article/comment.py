@@ -12,7 +12,6 @@ from utils.user_info import user_dict
 
 # TODO: DELETE ARTICLE COMMENT
 class CommentAPI(MethodView):
-    @Limiter()
     @Limiter('speaker')
     def post(self) -> Response:
         """
