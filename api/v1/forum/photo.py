@@ -11,7 +11,13 @@ class PhotoAPI(MethodView):
     def post(self):
         photo = request.files.get('photo')
         filename, suffix = os.path.splitext(photo.filename)
+        file_name = 'forum-' + str(uuid.uuid4()) + '-' + g.user.user_id + '-' + filename
+        file_url = 'https://byszqq-1310478750.cos.ap-nanjing.myqcloud.com/' + file_name + suffix
         upload_photo(photo_obj=photo,
                      suffix=suffix,
-                     photo_name='forum-' + str(uuid.uuid4()) + '-' + g.user.user_id + '-' + filename)
-        return jsonify({'code': 200, 'message': 'success'})
+                     photo_name=file_name)
+        return jsonify({'code': 200, 'message': 'success',
+                        'data': {
+                            'url': file_url
+                        }
+                        })

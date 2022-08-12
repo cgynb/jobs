@@ -35,7 +35,7 @@ class QuestionAPI(MethodView):
             if question_id is not None:
                 question = mongo.db.question.find_one({'question_id': question_id}, {'_id': 0})
                 if question is not None:
-                    question |= user_dict(question.get)
+                    question |= user_dict(question.get('user_id'))
                     return jsonify({'code': 200, 'message': 'success', 'data': question})
                 else:
                     return jsonify({'code': 404, 'message': "there's no such question"})
@@ -53,7 +53,7 @@ class QuestionAPI(MethodView):
 
                 question_lst = [question for question in questions]
                 for i in range(len(question_lst)):
-                    question_lst[i] |= user_dict(question_lst[i].get)
+                    question_lst[i] |= user_dict(question_lst[i].get('user_id'))
                 return jsonify({'code': 200, 'message': 'success',
                                 'data': {'current_page': page, 'total_question': total_question,
                                          'total_page': total_page, 'questions': question_lst}})

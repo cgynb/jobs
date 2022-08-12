@@ -32,6 +32,7 @@ class CaptchaAPI(MethodView):
                 mail.send(message)
             except SMTPException as e:
                 Log.error(e)
+                db.session.rollback()
                 return jsonify({'code': 500, 'message': 'smtp error'})
             except SQLAlchemyError as e:
                 Log.error(e)

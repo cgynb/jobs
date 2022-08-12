@@ -57,3 +57,22 @@ class VoteModel(db.Model):
     topic_id = db.Column(db.String(50), nullable=False)
     user_id = db.Column(db.String(30), nullable=False)
     op = db.Column(db.SmallInteger, nullable=False)
+
+
+class JobsModel(db.Model):
+    __tablename__ = 'jobs_detail'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    job = db.Column(db.String(20))
+    city = db.Column(db.String(15))
+    salary = db.Column(db.String(15))
+    education = db.Column(db.String(10))
+    experience = db.Column(db.String(10))
+    goodList = db.Column(db.Text)
+    needList = db.Column(db.Text)
+    jobInfo = db.Column(db.Text)
+    company = db.Column(db.String(20))
+    companyType = db.Column(db.String(15))
+    companyPeople = db.Column(db.String(15))
+    companyPosition = db.Column(db.Text)
+    companyInfo = db.Column(db.Text)
+

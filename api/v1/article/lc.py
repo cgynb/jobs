@@ -152,6 +152,7 @@ class LCAPI(MethodView):
                 return jsonify({'code': 400, 'message': 'params error'})
         except SQLAlchemyError as e:
             Log.error(e)
+            db.session.rollback()
             return jsonify({'code': 500, 'message': 'database error'})
         except PyMongoError as e:
             Log.error(e)
