@@ -3,7 +3,7 @@ import click
 from sqlalchemy.exc import SQLAlchemyError
 from api import api_bp
 from utils.token_operation import validate_token, create_token
-from exts import db, migrate, mail, cors, mongo, skio
+from exts import db, migrate, mail, cors, mongo, socketio
 from models import UserModel
 import toml
 import logging
@@ -25,7 +25,7 @@ migrate.init_app(app, db)
 mail.init_app(app)
 cors.init_app(app, supports_credentials=True, expose_headers=['Authorization', 'refresh-token'])
 mongo.init_app(app)
-skio.init_app(app)
+socketio.init_app(app)
 
 app.register_blueprint(api_bp)
 
@@ -63,5 +63,5 @@ def run(port):
     wsgi.server(eventlet.listen(('0.0.0.0', port)), app)
 
 
-if __name__ == '__main__':
-    app.run('0.0.0.0')
+# if __name__ == '__main__':
+#     socketio.run(app, '0.0.0.0', 5000, debug=True)

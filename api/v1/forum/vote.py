@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from flask import jsonify, request, g
 from flask.views import MethodView
 from sqlalchemy import and_
@@ -8,6 +10,7 @@ from models import VoteModel, TopicModel
 from utils.limit import Limiter
 from utils.log import Log
 from utils.others import rand_str
+from utils.args_check import Check
 
 
 class VoteAPI(MethodView):
@@ -17,68 +20,44 @@ class VoteAPI(MethodView):
     """
 
     def get(self):
-        topic_id = request.args.get('topic_id')
         page = int(request.args.get('page'))
-        if topic_id is None:
-            each_page = 10
-            sql = """
-                select 
-                    topic_id, 
-                    topic_content, 
-                    op1, 
-                    op2, 
-                    op3, 
-                    op4
-                from topic
-                limit :f, :t
-            """
-            topics = []
-            topics_obj = db.session.execute(sql, params={'f': each_page * (page - 1), 't': each_page * page}).fetchall()
-            for t in topics_obj:
-                indexes = ('topic_id', 'topic_content', 'op1', 'op2', 'op3', 'op4',
-                           'op1_count', 'op2_count', 'op3_count', 'op4_count')
-                topic = dict(zip(indexes, t))
-                topics.append(topic)
-            return jsonify({'code': 200, 'message': 'success', 'data': {'votes': topics}})
-        else:
-            sql = """
-                select 
-                    topic.topic_id, 
-                    topic.topic_content, 
-                    topic.op1, 
-                    topic.op2, 
-                    topic.op3, 
-                    topic.op4, 
-                    (select count(1) 
-                     from vote 
-                     where topic_id = :topic_id and op = 1),
-                    (select count(1) 
-                     from vote 
-                     where topic_id = :topic_id and op = 2),
-                    (select count(1) 
-                     from vote 
-                     where topic_id = :topic_id and op = 3),
-                    (select count(1) 
-                     from vote 
-                     where topic_id = :topic_id and op = 4)
-                from topic
-                where topic.topic_id = :topic_id
-            """
-            topic = db.session.execute(sql, params={'topic_id': topic_id}).fetchone()
-            indexes = ('topic_id', 'topic_content', 'op1', 'op2', 'op3', 'op4',
+        each_page = 10
+        user_sql = f'where vote.user_id = {g.user.user_id}' if hasattr(g, 'user') else ''
+        sql = f"""
+                select
+                    topic.topic_id,
+                    topic_content,
+                    op1,
+                    op2,
+                    op3,
+                    op4,
+                    (case
+                        when op = 1 then op1
+                        when op = 2 then op2
+                        when op = 3 then op3
+                        when op = 4 then op4
+                    end),
+                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 1),
+                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 2),
+                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 3),
+                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 4)
+                from topic left join vote on vote.topic_id = topic.topic_id
+                {user_sql}
+                limit :b, :t;
+        """
+        topics = list()
+        topics_obj = db.session.execute(sql, params={'b': each_page * (page - 1), 't': each_page * page}).fetchall()
+        for t in topics_obj:
+            indexes = ('topic_id', 'topic_content', 'op1', 'op2', 'op3', 'op4', 'choose',
                        'op1_count', 'op2_count', 'op3_count', 'op4_count')
-            topic = dict(zip(indexes, topic))
+            topic = dict(zip(indexes, t))
             topic['options'] = list()
             topic['options'].append({'name': topic.pop('op1'), 'count': topic.pop('op1_count')})
             topic['options'].append({'name': topic.pop('op2'), 'count': topic.pop('op2_count')})
             topic['options'].append({'name': topic.pop('op3'), 'count': topic.pop('op3_count')})
             topic['options'].append({'name': topic.pop('op4'), 'count': topic.pop('op4_count')})
-            topic['choose'] = None
-            if hasattr(g, 'user'):
-                v = VoteModel.query.\
-                    filter(and_(VoteModel.topic_id == topic_id, VoteModel.user_id == g.user.user_id)).first()
-                topic['choose'] = topic['options'][v.op - 1]['name']
-            return jsonify({'code': 200, 'message': 'success', 'data': topic})
+            topics.append(topic)
+        return jsonify({'code': 200, 'message': 'success', 'data': {'votes': topics}})
 
     @Limiter('user')
     def post(self):
@@ -88,6 +67,8 @@ class VoteAPI(MethodView):
         op3 = request.form.get('op3')
         op4 = request.form.get('op4')
         topic_id = 'topic-' + rand_str(6) + '-' + str(uuid.uuid4())
+        if Check(must=('op1', 'op2', 'op3', 'op4', 'topic_content'), args_dict=request.form).check() is False:
+            return jsonify({'code': 400, 'message': 'params error'})
         try:
             topic = TopicModel(topic_id=topic_id, topic_content=topic_content, op1=op1, op2=op2, op3=op3, op4=op4)
             db.session.add(topic)
@@ -125,11 +106,11 @@ class VoteAPI(MethodView):
                 return jsonify({'code': 404, 'message': f"there's no such topic (topic_id: {topic_id})"})
             v = VoteModel.query. \
                 filter(
-                    and_(
-                        VoteModel.topic_id == topic_id,
-                        VoteModel.user_id == g.user.user_id
-                    )
-                ).first()
+                and_(
+                    VoteModel.topic_id == topic_id,
+                    VoteModel.user_id == g.user.user_id
+                )
+            ).first()
             if v is not None:
                 return jsonify({'code': 403, 'message': "you have voted"})
         try:
