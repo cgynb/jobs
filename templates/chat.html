@@ -16,12 +16,8 @@
 
 
             // 这个sid存到缓存里面
-            socket.on('get_rooms', function (message) {
-                console.log('user_sid: ', message.user_sid)
-                for(let room of message.rooms){
-                    console.log('room_id: ', room.room_id)
-                    console.log('participants: ', room.participants)
-                }
+            socket.on('get_rooms_info', function (message) {
+                console.log(message)
             })
             socket.on('resp', function(message, callback_func) {
                 $('#log').append('<br>' + $('<div/>').text('MSG: ' + message.data).html());

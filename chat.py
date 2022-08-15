@@ -12,12 +12,20 @@ from models import ChatMapModel, RoomModel
 from utils.user_info import user_dict
 
 
+def sid_to_id(sid):
+    return ChatMapModel.query.filter(ChatMapModel.user_sid == sid).first().user_id
+
+
+def online_user_ids():
+    online_users = set()
+    for room in rooms():
+        if room == request.sid:
+            continue
+        online_users.update(sid_to_id(sid) for sid in participants(room))
+    return list(online_users)
+
+
 class ChatNamespace(Namespace):
-    # 连接是触发
-    def on_connect(self):
-        # rooms =
-        # emit('get_rooms', {'rooms': ...})
-        print('con!!')
 
     def on_join_rooms(self, message):
         user_id = message.get('user_id')
@@ -36,32 +44,33 @@ class ChatNamespace(Namespace):
             union all
             select room.room_id, user1_id, user2_id from room where room.user2_id = :user_id;
         """
-        for room_id, _, _ in db.session.execute(sql, params={'user_id': user_id}).fetchall():
-            emit('other_join', {'data': {'new_user': user_dict(user_id)}}, room=room_id)
+        rms = []
+        for room_id, user1_id, user2_id in db.session.execute(sql, params={'user_id': user_id}).fetchall():
             join_room(room_id)
+            rms.append({'room_id': room_id, 'users': [user_dict(user1_id), user_dict(user2_id)]})
+            emit('user_change', {'new_user': user_dict(user_id)}, room=room_id)
 
-        rm_ids = rooms()
-        rm_ids.remove(user_sid)
-        rs = []
-        for r in rm_ids:
-            user_sids = participants(r)
-            mp = []
-            for user_sid in user_sids:
-                user_id = ChatMapModel.query.filter(ChatMapModel.user_sid == user_sid).first().user_id
-                mp.append({'user': user_dict(user_id)})
-            rs.append({'room_id': r, 'participants': mp})
-        emit('get_rooms', {'rooms': rs, 'user_sid': user_sid})
+        emit('get_rooms_info', {'rooms': rms, 'user_sid': user_sid, 'online_users': online_user_ids()})
 
-    # 断开连接触发
-    # def on_disconnect(self):
-    #     print('Client disconnected', request.sid)
 
-    # 自己发送信息
-    # def on_my_event(self, message):
-    #     print(message)
-    #     print(message['data'])
-    #     emit('resp',
-    #          {'data': message['data']})
+    # 在房间中发送信息
+    def on_send_room_msg(self, data):
+        msg = data.get('message')
+        room_id = data.get('room_id')
+        user_id = data.get('user_id')
+        emit('get_room_msg', {'message': msg, 'user': user_dict(user_id)}, room=room_id)
+
+    # 离开房间
+    def on_disconnect(self):
+        user = user_dict(ChatMapModel.query.filter(ChatMapModel.user_sid == request.sid).first().user_id)
+        for room in rooms():
+            if room == request.sid:
+                continue
+            emit('user_change', {'leave_user': user}, room=room)
+
+    # 广播
+    # def on_my_broadcast_event(self, message):
+    #     emit('resp', {'data': message['data']}, broadcast=True)
 
     # 断开连接
     # def on_disconnect_request(self):
@@ -70,26 +79,3 @@ class ChatNamespace(Namespace):
     #         disconnect()
     #
     #     emit('resp', {'data': 'Disconnected!'}, callback=can_disconnect)
-
-    # 在房间中发送信息
-    def on_send_room_msg(self, message):
-        emit('get_room_msg', {'data': message['data']}, room=message.get('room'))
-
-    # 关闭房间
-    def on_close_room(self, message):
-        emit('resp', {'data': 'the room is close'}, room=message.get('room_id'))
-
-        room = RoomModel.query.filter(RoomModel.room_id == message.get('room_id'))
-        db.session.delete(room)
-        db.session.commit()
-
-        close_room(message['room'])
-
-    # 离开房间
-    def on_leave(self, message):
-        emit('resp', {'data': user_dict(message.get('user_id'))})
-        leave_room(message['room'])
-
-    # 广播
-    # def on_my_broadcast_event(self, message):
-    #     emit('resp', {'data': message['data']}, broadcast=True)

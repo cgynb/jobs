@@ -20,6 +20,7 @@ class VoteAPI(MethodView):
     put: 进行投票
     """
 
+    @Limiter('user')
     def get(self):
         page = int(request.args.get('page'))
         each_page = 10
@@ -43,21 +44,6 @@ class VoteAPI(MethodView):
                     (select count(*) from vote where vote.topic_id = topic.topic_id and op = 4) as op4_count
                 from topic left join (select * from vote where vote.user_id="{g.user.user_id}") as v on v.topic_id = topic.topic_id
                 limit :b, :t;
-        """ if hasattr(g, 'user') else """
-            select
-                topic.topic_id,
-                topic_content,
-                op1,
-                op2,
-                op3,
-                op4,
-                NULL as choose,
-                (select count(*) from vote where vote.topic_id = topic.topic_id and op = 1) as op1_count,
-                (select count(*) from vote where vote.topic_id = topic.topic_id and op = 2) as op2_count,
-                (select count(*) from vote where vote.topic_id = topic.topic_id and op = 3) as op3_count,
-                (select count(*) from vote where vote.topic_id = topic.topic_id and op = 4) as op4_count
-            from topic left join vote as v on v.topic_id = topic.topic_id
-            limit :b, :t;
         """
         topics = list()
         topics_obj = db.session.execute(sql, params={'b': each_page * (page - 1), 't': each_page * page}).fetchall()
