@@ -1,3 +1,4 @@
+import random
 from typing import Tuple
 
 from flask import jsonify, request, g
@@ -70,6 +71,7 @@ class VoteAPI(MethodView):
             topic['options'].append({'name': topic.pop('op3'), 'count': topic.pop('op3_count')})
             topic['options'].append({'name': topic.pop('op4'), 'count': topic.pop('op4_count')})
             topics.append(topic)
+            random.shuffle(topics)
         return jsonify({'code': 200, 'message': 'success', 'data': {'votes': topics}})
 
     @Limiter('user')

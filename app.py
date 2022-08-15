@@ -26,7 +26,7 @@ migrate.init_app(app, db)
 mail.init_app(app)
 cors.init_app(app, supports_credentials=True, expose_headers=['Authorization', 'refresh-token'])
 mongo.init_app(app)
-socketio.init_app(app)
+socketio.init_app(app, cors_allowed_origins='*')
 
 socketio.on_namespace(ChatNamespace('/chat'))
 

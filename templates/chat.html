@@ -8,86 +8,31 @@
         $(document).ready(function() {
             namespace = '/chat';
             var socket = io("http://127.0.0.1:5000" + namespace);
-            socket.on('connect', function() {
-                socket.emit('my_event', {data: 'I\'m connected!'});
-            });
 
-            socket.on('my_response', function(msg, cb) {
-                $('#log').append('<br>' + $('<div/>').text('MSG: ' + msg.data).html());
-                if(msg.participants){
-                    console.log(msg.participants)
+
+            socket.on('connect', function () {
+                socket.emit('join_rooms', {'user_id': 'Mfgxc0712155901446661'}) // 写 user_id
+            })
+
+
+            // 这个sid存到缓存里面
+            socket.on('get_rooms', function (message) {
+                console.log('user_sid: ', message.user_sid)
+                for(let room of message.rooms){
+                    console.log('room_id: ', room.room_id)
+                    console.log('participants: ', room.participants)
                 }
-                if (cb) {
-                    console.log('hhh')
-                    console.log(cb())
-                    console.log(typeof cb)
-                    cb();
+            })
+            socket.on('resp', function(message, callback_func) {
+                $('#log').append('<br>' + $('<div/>').text('MSG: ' + message.data).html());
+                if (callback_func) {
+                    callback_func();
                 }
-            });
-
-
-            $('form#emit').submit(function(event) {
-                socket.emit('my_event', {data: $('#emit_data').val()});
-                return false;
-            });
-            $('form#broadcast').submit(function(event) {
-                socket.emit('my_broadcast_event', {data: $('#broadcast_data').val()});
-                return false;
-            });
-            $('form#join').submit(function(event) {
-                socket.emit('join', {room: $('#join_room').val()});
-                return false;
-            });
-            $('form#leave').submit(function(event) {
-                socket.emit('leave', {room: $('#leave_room').val()});
-                return false;
-            });
-            $('form#send_room').submit(function(event) {
-                socket.emit('my_room_event', {room: $('#room_name').val(), data: $('#room_data').val()});
-                return false;
-            });
-            $('form#close').submit(function(event) {
-                socket.emit('close_room', {room: $('#close_room').val()});
-                return false;
-            });
-            $('form#disconnect').submit(function(event) {
-                socket.emit('disconnect_request');
-                return false;
-            });
-        });
+            })
+        })
     </script>
 </head>
 <body>
-    <h2>Send:</h2>
-    <form id="emit" method="POST" action='#'>
-        <input type="text" name="emit_data" id="emit_data" placeholder="Message">
-        <input type="submit" value="Echo">
-    </form>
-    <form id="broadcast" method="POST" action='#'>
-        <input type="text" name="broadcast_data" id="broadcast_data" placeholder="Message">
-        <input type="submit" value="Broadcast">
-    </form>
-    <form id="join" method="POST" action='#'>
-        <input type="text" name="join_room" id="join_room" placeholder="Room Name">
-        <input type="submit" value="Join Room">
-    </form>
-    <form id="leave" method="POST" action='#'>
-        <input type="text" name="leave_room" id="leave_room" placeholder="Room Name">
-        <input type="submit" value="Leave Room">
-    </form>
-    <form id="send_room" method="POST" action='#'>
-        <input type="text" name="room_name" id="room_name" placeholder="Room Name">
-        <input type="text" name="room_data" id="room_data" placeholder="Message">
-        <input type="submit" value="Send to Room">
-    </form>
-    <form id="close" method="POST" action="#">
-        <input type="text" name="close_room" id="close_room" placeholder="Room Name">
-        <input type="submit" value="Close Room">
-    </form>
-    <form id="disconnect" method="POST" action="#">
-        <input type="submit" value="Disconnect">
-    </form>
-    <h2>MESSAGE:</h2>
-    <div id="log"></div>
+
 </body>
 </html>

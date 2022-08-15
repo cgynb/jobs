@@ -59,6 +59,20 @@ class VoteModel(db.Model):
     op = db.Column(db.SmallInteger, nullable=False)
 
 
+class RoomModel(db.Model):
+    __tablename__ = 'room'
+    room_id = db.Column(db.String(100), primary_key=True)
+    user1_id = db.Column(db.String(30), nullable=False)
+    user2_id = db.Column(db.String(30), nullable=False)
+
+
+class ChatMapModel(db.Model):
+    __tablename__ = 'chat_map'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.String(30), nullable=False, unique=True, index=True)
+    user_sid = db.Column(db.String(50), nullable=False)
+
+
 class JobsModel(db.Model):
     __tablename__ = 'jobs_detail'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
