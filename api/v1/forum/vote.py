@@ -22,7 +22,6 @@ class VoteAPI(MethodView):
     def get(self):
         page = int(request.args.get('page'))
         each_page = 10
-        user_sql = f'where vote.user_id = {g.user.user_id}' if hasattr(g, 'user') else ''
         sql = f"""
                 select
                     topic.topic_id,
@@ -36,14 +35,28 @@ class VoteAPI(MethodView):
                         when op = 2 then op2
                         when op = 3 then op3
                         when op = 4 then op4
-                    end),
-                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 1),
-                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 2),
-                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 3),
-                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 4)
-                from topic left join vote on vote.topic_id = topic.topic_id
-                {user_sql}
+                    end) as choose,
+                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 1) as op1_count,
+                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 2) as op2_count,
+                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 3) as op3_count,
+                    (select count(*) from vote where vote.topic_id = topic.topic_id and op = 4) as op4_count
+                from topic left join (select * from vote where vote.user_id="{g.user.user_id}") as v on v.topic_id = topic.topic_id
                 limit :b, :t;
+        """ if hasattr(g, 'user') else """
+            select
+                topic.topic_id,
+                topic_content,
+                op1,
+                op2,
+                op3,
+                op4,
+                NULL as choose,
+                (select count(*) from vote where vote.topic_id = topic.topic_id and op = 1) as op1_count,
+                (select count(*) from vote where vote.topic_id = topic.topic_id and op = 2) as op2_count,
+                (select count(*) from vote where vote.topic_id = topic.topic_id and op = 3) as op3_count,
+                (select count(*) from vote where vote.topic_id = topic.topic_id and op = 4) as op4_count
+            from topic left join vote as v on v.topic_id = topic.topic_id
+            limit :b, :t;
         """
         topics = list()
         topics_obj = db.session.execute(sql, params={'b': each_page * (page - 1), 't': each_page * page}).fetchall()

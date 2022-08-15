@@ -5,6 +5,7 @@ from api import api_bp
 from utils.token_operation import validate_token, create_token
 from exts import db, migrate, mail, cors, mongo, socketio
 from models import UserModel
+from chat import ChatNamespace
 import toml
 import logging
 from utils.log import Log
@@ -26,6 +27,8 @@ mail.init_app(app)
 cors.init_app(app, supports_credentials=True, expose_headers=['Authorization', 'refresh-token'])
 mongo.init_app(app)
 socketio.init_app(app)
+
+socketio.on_namespace(ChatNamespace('/chat'))
 
 app.register_blueprint(api_bp)
 
@@ -63,5 +66,12 @@ def run(port):
     wsgi.server(eventlet.listen(('0.0.0.0', port)), app)
 
 
-# if __name__ == '__main__':
-#     socketio.run(app, '0.0.0.0', 5000, debug=True)
+@app.route('/chatroom/')
+def c():
+    print(request.method)
+    from flask import render_template
+    return render_template('chat.html', async_mode=socketio.async_mode)
+
+
+if __name__ == '__main__':
+    socketio.run(app, '0.0.0.0', 5000, debug=True)
