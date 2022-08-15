@@ -8,7 +8,7 @@ from flask_socketio import (emit,
                             Namespace)
 from flask import request, copy_current_request_context
 from exts import db
-from models import ChatMapModel, RoomModel
+from models import ChatMapModel, RoomModel, MessageModel
 from utils.user_info import user_dict
 
 
@@ -52,12 +52,18 @@ class ChatNamespace(Namespace):
 
         emit('get_rooms_info', {'rooms': rms, 'user_sid': user_sid, 'online_users': online_user_ids()})
 
-
     # 在房间中发送信息
     def on_send_room_msg(self, data):
         msg = data.get('message')
         room_id = data.get('room_id')
         user_id = data.get('user_id')
+        users = participants(room_id)
+        read = True if len(users) == 1 else False
+        room = RoomModel.query.filter(RoomModel.room_id == room_id).first()
+        reader_id = room.user1_id if user_id == room.user1_id else room.user2_id
+        m = MessageModel(room_id=room_id, sender_id=user_id, reader_id=reader_id, read=read)
+        db.session.add(m)
+        db.session.commit()
         emit('get_room_msg', {'message': msg, 'user': user_dict(user_id)}, room=room_id)
 
     # 离开房间

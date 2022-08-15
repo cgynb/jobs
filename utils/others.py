@@ -1,5 +1,6 @@
 import string
 import random
+import base64
 
 user_img_lst = [
     'https://img.zcool.cn/community/01a12c576cd97e0000012e7e11b4f0.png@1280w_1l_2o_100sh.png',
@@ -44,3 +45,8 @@ def rand_str(length: int) -> str:
 
 def rand_title_img() -> str:
     return title_img_lst[random.randint(0, len(title_img_lst) - 1)]
+
+
+def gen_room_id(user1_id, user2_id):
+    s = max(user1_id, user2_id) + '-' + min(user1_id, user2_id)
+    return base64.b64encode(s.encode()).decode()

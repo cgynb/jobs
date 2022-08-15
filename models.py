@@ -73,6 +73,16 @@ class ChatMapModel(db.Model):
     user_sid = db.Column(db.String(50), nullable=False)
 
 
+class MessageModel(db.Model):
+    __tablename__ = 'message'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    room_id = db.Column(db.String(100))
+    sender_id = db.Column(db.String(30), nullable=False)
+    reader_id = db.Column(db.String(30), nullable=False)
+    read = db.Column(db.Boolean, default=False)
+    info = db.Column(db.Text)
+
+
 class JobsModel(db.Model):
     __tablename__ = 'jobs_detail'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
