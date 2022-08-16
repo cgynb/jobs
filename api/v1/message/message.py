@@ -3,9 +3,11 @@ from flask.views import MethodView
 from exts import db
 from models import MessageModel
 from utils.args_check import Check
+from utils.limit import Limiter
 
 
 class MessageAPI(MethodView):
+    @Limiter('user')
     def get(self):
         if Check(must=('room_id', ), args_dict=request.args).check():
             msgs = MessageModel.query.filter(MessageModel.room_id == request.args.get('room_id')).all()
@@ -15,7 +17,12 @@ class MessageAPI(MethodView):
                     msg.read = True
                     db.session.commit()
                 msg_lst.append({'sender_id': msg.sender_id, 'reader_id': msg.reader_id,
-                                'read': msg.read, 'message': msg.info})
-            return jsonify({'code': 200, 'message': 'success', 'data': {'messages': msg_lst}})
+                                'read': msg.read, 'message': msg.info, 'send_time': msg.send_time})
+            return jsonify({'code': 200, 'message': 'success',
+                            'data': {
+                                'messages': msg_lst,
+                                'last_msg': msg_lst[-1] if len(msg_lst) > 0 else None
+                            }
+                            })
         else:
             return jsonify({'code': 400, 'message': 'params error'})

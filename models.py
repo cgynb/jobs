@@ -81,6 +81,7 @@ class MessageModel(db.Model):
     reader_id = db.Column(db.String(30), nullable=False)
     read = db.Column(db.Boolean, default=False)
     info = db.Column(db.Text)
+    send_time = db.Column(db.Integer, default=time.time)
 
 
 class JobsModel(db.Model):
