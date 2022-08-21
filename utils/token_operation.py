@@ -23,12 +23,16 @@ def create_token(user: UserModel, refresh_token: bool = False) -> str:
         "iss": 'byszqq'
     }
     key: str = current_app.config.get('JWT_SECRET_KEY')
-    if refresh_token is True:
-        u = UserModel.query.filter(UserModel.user_id == user.user_id).first()
-        refresh_key = rand_str(6)
-        u.refresh_key = refresh_key
-        payload['refresh_key'] = refresh_key
-        db.session.commit()
+    try:
+        if refresh_token is True:
+            u = UserModel.query.filter(UserModel.user_id == user.user_id).first()
+            refresh_key = rand_str(6)
+            u.refresh_key = refresh_key
+            payload['refresh_key'] = refresh_key
+            db.session.commit()
+    except SQLAlchemyError as e:
+        Log.error(e)
+        db.session.rollback()
     token: str = jwt.encode(payload=payload, key=key, algorithm='HS256', headers=headers)
     return token
 

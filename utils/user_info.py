@@ -1,21 +1,28 @@
 import typing as t
 import ast
 from flask import current_app
+from sqlalchemy.exc import SQLAlchemyError
 from qcloud_cos import CosConfig
 from qcloud_cos import CosS3Client
 from models import UserModel
+from utils.log import Log
 
 
 def user_obj(user_id: str = None) -> t.Optional[UserModel]:
-    user = UserModel.query.filter(UserModel.user_id == user_id).first()
-    if user is not None:
-        return user
-    else:
-        return None
+    user = None
+    try:
+        user = UserModel.query.filter(UserModel.user_id == user_id).first()
+    except SQLAlchemyError as e:
+        Log.error(e)
+    finally:
+        if user is not None:
+            return user
+        else:
+            return None
 
 
 def user_dict(user_id: str = None) -> t.Optional[dict]:
-    user = UserModel.query.filter(UserModel.user_id == user_id).first()
+    user = user_obj(user_id)
     if user is not None:
         return obj_to_dict(user)
     else:

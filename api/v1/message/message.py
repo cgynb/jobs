@@ -21,8 +21,7 @@ class MessageAPI(MethodView):
             return jsonify({'code': 200, 'message': 'success',
                             'data': {
                                 'messages': msg_lst,
-                                'last_msg': msg_lst[-1] if len(msg_lst) > 0 else None
-                            }
+                                }
                             })
         else:
             return jsonify({'code': 400, 'message': 'params error'})

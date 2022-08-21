@@ -6,6 +6,7 @@ from exts import db, mail
 from flask_mail import Message
 from utils.others import rand_str
 from utils.log import Log
+from utils.args_check import Check
 from sqlalchemy.exc import SQLAlchemyError
 from smtplib import SMTPException
 
@@ -15,7 +16,7 @@ class CaptchaAPI(MethodView):
         email: str = request.args.get('email')
         captcha_len: int = random.randint(4, 8)
         ret: str = rand_str(captcha_len)
-        if email:
+        if Check(must=('email', ), args_dict=request.args).check():
             try:
                 c: CaptchaModel = CaptchaModel.query.filter(CaptchaModel.email == email).first()
                 if c:
@@ -25,11 +26,12 @@ class CaptchaAPI(MethodView):
                     db.session.add(c)
                 db.session.commit()
                 message: Message = Message(
-                    subject='求职',
+                    subject='毕业剩转圈圈',
                     recipients=[email],
                     body=f'验证码是：{ret}，请不要告诉他人',
                 )
                 mail.send(message)
+                return jsonify({'code': 200, 'message': 'success'})
             except SMTPException as e:
                 Log.error(e)
                 db.session.rollback()
@@ -37,10 +39,8 @@ class CaptchaAPI(MethodView):
             except SQLAlchemyError as e:
                 Log.error(e)
                 return jsonify({'code': 500, 'message': 'database error'})
-            else:
-                return jsonify({'code': 200, 'message': 'success'})
         else:
-            return jsonify({'code': 400, 'message': 'lose params'})
+            return jsonify({'code': 400, 'message': 'params error'})
 
     def post(self) -> Response:
         email: str = request.form.get('email')
@@ -50,7 +50,7 @@ class CaptchaAPI(MethodView):
         except SQLAlchemyError as e:
             Log.error(e)
         else:
-            if c_obj:
+            if c_obj is not None:
                 if c_obj.captcha == c_str:
                     return jsonify({'code': 200, 'message': 'success'})
         return jsonify({'code': 200, 'message': "fail"})
