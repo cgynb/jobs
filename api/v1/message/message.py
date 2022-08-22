@@ -19,9 +19,6 @@ class MessageAPI(MethodView):
                 msg_lst.append({'sender_id': msg.sender_id, 'reader_id': msg.reader_id,
                                 'read': msg.read, 'message': msg.info, 'send_time': msg.send_time})
             return jsonify({'code': 200, 'message': 'success',
-                            'data': {
-                                'messages': msg_lst,
-                                }
-                            })
+                            'data': {'messages': msg_lst}})
         else:
             return jsonify({'code': 400, 'message': 'params error'})

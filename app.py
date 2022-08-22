@@ -66,12 +66,5 @@ def run(port):
     wsgi.server(eventlet.listen(('0.0.0.0', port)), app)
 
 
-@app.route('/chatroom/')
-def c():
-    print(request.method)
-    from flask import render_template
-    return render_template('chat.html', async_mode=socketio.async_mode)
-
-
 if __name__ == '__main__':
     socketio.run(app, '0.0.0.0', 5000, debug=True)

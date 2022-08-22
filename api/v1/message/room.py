@@ -6,6 +6,7 @@ from models import RoomModel
 from utils.limit import Limiter
 from utils.others import gen_room_id
 from utils.args_check import Check
+from utils.user_info import user_dict
 
 
 class RoomAPI(MethodView):
@@ -13,6 +14,7 @@ class RoomAPI(MethodView):
     def get(self):
         sql = """
                 select room.room_id,
+                       if(room.user1_id = :user_id, room.user2_id, room.user1_id) as friend_id,
                        ifnull((select message.info
                         from message
                         where message.room_id = room.room_id
@@ -29,6 +31,7 @@ class RoomAPI(MethodView):
                 union all
                 
                 select room.room_id,
+                       if(room.user1_id = :user_id, room.user2_id, room.user1_id) as friend_id,
                        ifnull((select message.info
                         from message
                         where message.room_id = room.room_id
@@ -43,9 +46,9 @@ class RoomAPI(MethodView):
                 where room.user2_id = :user_id;
         """
         rms = list()
-        for room_id, last_msg, to_read in db.session.execute(sql, params={'user_id': g.user.user_id}).fetchall():
-            rms.append({'room_id': room_id, 'last_msg': last_msg, 'to_read': to_read})
-        return jsonify({'code': 200, 'message': 'success', 'data': rms})
+        for room_id, friend_id, last_msg, to_read in db.session.execute(sql, params={'user_id': g.user.user_id}).fetchall():
+            rms.append({'room_id': room_id, 'last_msg': last_msg, 'to_read': to_read, 'friend': user_dict(friend_id)})
+        return jsonify({'code': 200, 'message': 'success', 'data': {'rooms': rms}})
 
     @Limiter('user')
     def post(self):
