@@ -39,6 +39,7 @@ def update_map(user_id, user_sid):
     except SQLAlchemyError as e:
         Log.error(e)
         db.session.rollback()
+        emit('sys_msg', {'code': 500, 'message': 'database error'})
 
 
 class ChatNamespace(Namespace):
@@ -55,8 +56,8 @@ class ChatNamespace(Namespace):
         user_id = data.get('user_id')
         if Check(must=('room_id', 'user_id'), args_dict=data).check():
             join_room(room_id)
-            emit('sys_msg', {'code': 200, 'message': 'success'})
-            emit('room_info', {'online_status': True if len(participants(room_id)) == 2 else False},
+            emit('room_info', {'code': 200, 'message': 'success',
+                               'data': {'online_status': True if len(participants(room_id)) == 2 else False}},
                  callback=lambda: update_map(user_id, request.sid))
             emit('user_change', {'code': 200, 'message': 'success',
                                  'data': {'change': 'join',
@@ -96,12 +97,14 @@ class ChatNamespace(Namespace):
                 if read is False:  # 如果那个人不在房间，则发送给那个人
                     emit('get_msg', {'code': 200, 'message': 'success',
                                      'data': {'message': msg,
-                                              'room_id': room_id}},
+                                              'room_id': room_id,
+                                              'sender': user_dict(sender_id)}},
                          to=id_to_sid(reader_id),
                          callback=lambda: update_map(sender_id, request.sid))
                 else:  # 如果那个人在房间，则发送到房间里
                     emit('get_room_msg', {'code': 200, 'message': 'success',
                                           'data': {'message': msg,
+                                                   'room_id': room_id,
                                                    'sender': user_dict(sender_id)}
                                           },
                          room=room_id,
