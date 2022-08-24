@@ -7,6 +7,7 @@ from flask_socketio import (emit,
                             participants,
                             Namespace)
 from flask import request, copy_current_request_context
+import time
 from sqlalchemy.exc import SQLAlchemyError
 from exts import db
 from models import ChatMapModel, RoomModel, MessageModel
@@ -69,9 +70,14 @@ class ChatNamespace(Namespace):
 
     def on_leave_room(self, data):
         room_id = data.get('room_id')
-        if Check(must=('room_id', ), args_dict=data).check():
+        user_id = data.get('user_id')
+        if Check(must=('room_id', 'user_id'), args_dict=data).check():
             leave_room(room_id)
-            emit('sys_msg', {'code': 200, 'message': 'success'})
+            emit('user_change', {'code': 200, 'message': 'success',
+                                 'data': {'change': 'leave',
+                                          'user': user_dict(user_id),
+                                          'room_id': room_id}
+                                 }, room=room_id)
         else:
             emit('sys_msg', {'code': 400, 'message': 'params error'})
 
@@ -86,7 +92,7 @@ class ChatNamespace(Namespace):
         if Check(must=('message', 'room_id', 'reader_id', 'sender_id'), args_dict=data).check():
             try:
                 # 存储消息
-                m = MessageModel(room_id=room_id, sender_id=sender_id, reader_id=reader_id, read=read)
+                m = MessageModel(room_id=room_id, sender_id=sender_id, reader_id=reader_id, read=read, info=msg)
                 db.session.add(m)
                 db.session.commit()
             except SQLAlchemyError as e:
@@ -98,17 +104,24 @@ class ChatNamespace(Namespace):
                     emit('get_msg', {'code': 200, 'message': 'success',
                                      'data': {'message': msg,
                                               'room_id': room_id,
+                                              'sender_id': sender_id,
+                                              'reader_id': reader_id,
+                                              'read': read,
+                                              'send_time': time.time(),
                                               'sender': user_dict(sender_id)}},
                          to=id_to_sid(reader_id),
                          callback=lambda: update_map(sender_id, request.sid))
-                else:  # 如果那个人在房间，则发送到房间里
-                    emit('get_room_msg', {'code': 200, 'message': 'success',
-                                          'data': {'message': msg,
-                                                   'room_id': room_id,
-                                                   'sender': user_dict(sender_id)}
-                                          },
-                         room=room_id,
-                         callback=lambda: update_map(sender_id, request.sid))
+                emit('get_room_msg', {'code': 200, 'message': 'success',
+                                      'data': {'message': msg,
+                                               'room_id': room_id,
+                                               'sender_id': sender_id,
+                                               'reader_id': reader_id,
+                                               'read': read,
+                                               'send_time': time.time(),
+                                               'sender': user_dict(sender_id)}
+                                      },
+                     room=room_id,
+                     callback=lambda: update_map(sender_id, request.sid))
         else:
             emit('sys_msg', {'code': 400, 'message': 'params error'})
 

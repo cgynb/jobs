@@ -4,11 +4,11 @@ import typing as t
 
 class Log:
     @staticmethod
-    def warning(msg: t.Any) -> None:
+    def warning(msg: t.Union[str, Exception]) -> None:
         current_app.logger.warning(request.remote_addr + '  ' + str(msg))
 
     @staticmethod
-    def error(msg: t.Any) -> None:
+    def error(msg: t.Union[str, Exception]) -> None:
         current_app.logger.error(request.remote_addr + '  ' + str(msg))
 
     @staticmethod
