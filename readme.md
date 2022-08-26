@@ -78,4 +78,3 @@ url: [http://47.112.108.202/](http://47.112.108.202/)
 > This is not only a platform you could get jobs information, but also a community of graduates. So we think friends system should be built.
 
 ![image](https://user-images.githubusercontent.com/94276865/186974537-43be2f55-1e7d-4306-916b-c0e32e986ccf.png)
-[bb](http://www.baidu.com)
