@@ -1,7 +1,7 @@
 import random
 from typing import Tuple
 
-from flask import jsonify, request, g
+from flask import jsonify, request, g, Response
 from flask.views import MethodView
 from sqlalchemy import and_
 from sqlalchemy.exc import SQLAlchemyError
@@ -21,9 +21,9 @@ class VoteAPI(MethodView):
     """
 
     @Limiter('user')
-    def get(self):
-        page = int(request.args.get('page'))
-        each_page = 10
+    def get(self) -> Response:
+        page: int = int(request.args.get('page'))
+        each_page: int = 10
         sql = f"""
                 select
                     topic.topic_id,
@@ -45,8 +45,8 @@ class VoteAPI(MethodView):
                 from topic left join (select * from vote where vote.user_id="{g.user.user_id}") as v on v.topic_id = topic.topic_id
                 limit :b, :t;
         """
-        topics = list()
-        topics_obj = db.session.execute(sql, params={'b': each_page * (page - 1), 't': each_page * page}).fetchall()
+        topics: list = list()
+        topics_obj: list = db.session.execute(sql, params={'b': each_page * (page - 1), 't': each_page * page}).fetchall()
         for t in topics_obj:
             indexes = ('topic_id', 'topic_content', 'op1', 'op2', 'op3', 'op4', 'choose',
                        'op1_count', 'op2_count', 'op3_count', 'op4_count')
@@ -57,21 +57,21 @@ class VoteAPI(MethodView):
             topic['options'].append({'name': topic.pop('op3'), 'count': topic.pop('op3_count')})
             topic['options'].append({'name': topic.pop('op4'), 'count': topic.pop('op4_count')})
             topics.append(topic)
-            random.shuffle(topics)
+            random.shuffle(topics)  # 打乱投票列表
         return jsonify({'code': 200, 'message': 'success', 'data': {'votes': topics}})
 
     @Limiter('user')
     def post(self):
-        topic_content = request.form.get('topic_content')
-        op1 = request.form.get('op1')
-        op2 = request.form.get('op2')
-        op3 = request.form.get('op3')
-        op4 = request.form.get('op4')
-        topic_id = 'topic-' + rand_str(6) + '-' + str(uuid.uuid4())
+        topic_content: str = request.form.get('topic_content')
+        op1: str = request.form.get('op1')
+        op2: str = request.form.get('op2')
+        op3: str = request.form.get('op3')
+        op4: str = request.form.get('op4')
+        topic_id: str = 'topic-' + rand_str(6) + '-' + str(uuid.uuid4())
         if Check(must=('op1', 'op2', 'op3', 'op4', 'topic_content'), args_dict=request.form).check() is False:
             return jsonify({'code': 400, 'message': 'params error'})
         try:
-            topic = TopicModel(topic_id=topic_id, topic_content=topic_content, op1=op1, op2=op2, op3=op3, op4=op4)
+            topic: TopicModel = TopicModel(topic_id=topic_id, topic_content=topic_content, op1=op1, op2=op2, op3=op3, op4=op4)
             db.session.add(topic)
             db.session.commit()
         except SQLAlchemyError as e:
@@ -87,13 +87,12 @@ class VoteAPI(MethodView):
                                 'op2': op2,
                                 'op3': op3,
                                 'op4': op4
-                            }
-                        }})
+                            }}})
 
     @Limiter('user')
-    def put(self):
-        topic_id = request.form.get('topic_id')
-        op = request.form.get('op')
+    def put(self) -> Response:
+        topic_id: str = request.form.get('topic_id')
+        op: str = request.form.get('op')
         if op is None:
             return jsonify({'code': 400, 'message': 'params error (need op)'})
         elif op is not None:
@@ -102,20 +101,18 @@ class VoteAPI(MethodView):
         if topic_id is None:
             return jsonify({'code': 400, 'message': 'params error (need topic_id)'})
         elif topic_id is not None:
-            v = TopicModel.query.filter(TopicModel.topic_id == topic_id).first()
+            v: TopicModel = TopicModel.query.filter(TopicModel.topic_id == topic_id).first()
             if v is None:
                 return jsonify({'code': 404, 'message': f"there's no such topic (topic_id: {topic_id})"})
-            v = VoteModel.query. \
-                filter(
-                and_(
+            v: VoteModel = VoteModel.query. \
+                filter(and_(
                     VoteModel.topic_id == topic_id,
                     VoteModel.user_id == g.user.user_id
-                )
-            ).first()
+                )).first()
             if v is not None:
                 return jsonify({'code': 403, 'message': "you have voted"})
         try:
-            vote = VoteModel(topic_id=topic_id, user_id=g.user.user_id, op=op)
+            vote: VoteModel = VoteModel(topic_id=topic_id, user_id=g.user.user_id, op=op)
             db.session.add(vote)
             db.session.commit()
         except SQLAlchemyError as e:

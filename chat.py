@@ -2,15 +2,13 @@ from flask_socketio import (emit,
                             rooms,
                             join_room,
                             leave_room,
-                            close_room,
-                            disconnect,
                             participants,
                             Namespace)
-from flask import request, copy_current_request_context
+from flask import request
 import time
 from sqlalchemy.exc import SQLAlchemyError
 from exts import db
-from models import ChatMapModel, RoomModel, MessageModel
+from models import ChatMapModel, MessageModel
 from utils.log import Log
 from utils.user_info import user_dict
 from utils.args_check import Check
@@ -150,11 +148,3 @@ class ChatNamespace(Namespace):
     # 广播
     # def on_my_broadcast_event(self, message):
     #     emit('resp', {'data': message['data']}, broadcast=True)
-
-    # 断开连接
-    # def on_disconnect_request(self):
-    #     @copy_current_request_context
-    #     def can_disconnect():
-    #         disconnect()
-    #
-    #     emit('resp', {'data': 'Disconnected!'}, callback=can_disconnect)

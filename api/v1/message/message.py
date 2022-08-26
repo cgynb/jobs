@@ -1,4 +1,4 @@
-from flask import jsonify, request, g
+from flask import jsonify, request, g, Response
 from flask.views import MethodView
 from exts import db
 from models import MessageModel
@@ -9,10 +9,10 @@ from utils.user_info import user_dict
 
 class MessageAPI(MethodView):
     @Limiter('user')
-    def get(self):
+    def get(self) -> Response:
         if Check(must=('room_id', ), args_dict=request.args).check():
-            msgs = MessageModel.query.filter(MessageModel.room_id == request.args.get('room_id')).all()
-            msg_lst = []
+            msgs: list = MessageModel.query.filter(MessageModel.room_id == request.args.get('room_id')).all()
+            msg_lst: list = []
             for msg in msgs:
                 if g.user.user_id == msg.reader_id:
                     msg.read = True

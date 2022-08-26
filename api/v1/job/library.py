@@ -1,17 +1,16 @@
-from flask import request, jsonify
+from flask import request, jsonify, Response
 from flask.views import MethodView
 from models import JobsModel
-from objprint import op
 import ast
 
 
 class LibraryAPI(MethodView):
-    def get(self):
-        each_page = 20
-        page = int(request.args.get('page', default='1'))
-        jbs = JobsModel.query.filter().offset(each_page * (int(page) - 1)).limit(each_page).all()
-        has_company = list()
-        hasnt_company = list()
+    def get(self) -> Response:
+        each_page: int = 20
+        page: int = int(request.args.get('page', default='1'))
+        jbs: list = JobsModel.query.filter().offset(each_page * (int(page) - 1)).limit(each_page).all()
+        has_company: list = list()
+        hasnt_company: list = list()
         for jb in jbs:
             if jb.company:
                 has_company.append({
