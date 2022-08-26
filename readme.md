@@ -20,6 +20,6 @@ a back end of a platform called 毕业剩转圈圈
 success: 
 
 ```cmd
-(venv) PS C:\Users\cgy\Desktop\jobs> flask start --port 5000
+(venv) > flask start --port 5000
 (16528) wsgi starting up on http://0.0.0.0:5000
 ```
