@@ -15,6 +15,7 @@ class LibraryAPI(MethodView):
         for jb in jbs:
             if jb.company:
                 has_company.append({
+                    'number': jb.number,
                     'job': jb.job,
                     'city': jb.city,
                     'salary': jb.salary,
@@ -31,6 +32,7 @@ class LibraryAPI(MethodView):
                 })
             else:
                 hasnt_company.append({
+                    'number': jb.number,
                     'job': jb.job,
                     'city': jb.city,
                     'salary': jb.salary,
@@ -47,6 +49,6 @@ class LibraryAPI(MethodView):
                 })
         return jsonify({'code': 200, 'message': 'success',
                         'data': {
-                                'has_company': hasnt_company,
+                                'has_company': has_company,
                                 'hasnt_company': hasnt_company
                             }})
