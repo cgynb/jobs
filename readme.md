@@ -76,4 +76,3 @@ In this project we provide 5 main function to those who were graduated but didn'
 > This is not only a platform you could get jobs information, but also a community of graduates. So we think friends system should be built.
 
 ![image](https://user-images.githubusercontent.com/94276865/186974537-43be2f55-1e7d-4306-916b-c0e32e986ccf.png)
-![image](https://user-images.githubusercontent.com/94276865/186970347-ada7a868-d97e-4353-b972-0c9a107cc5b6.png)
