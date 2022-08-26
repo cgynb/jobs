@@ -5,6 +5,7 @@ from .article import article_bp
 from .admin import admin_bp
 from .forum import forum_bp
 from .message import message_bp
+from .job import job_bp
 
 
 __all__ = [
@@ -20,6 +21,7 @@ def bp_init():
     bp.register_blueprint(forum_bp)
     bp.register_blueprint(admin_bp)
     bp.register_blueprint(message_bp)
+    bp.register_blueprint(job_bp)
 
     return bp
 

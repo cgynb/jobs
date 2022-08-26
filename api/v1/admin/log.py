@@ -4,7 +4,7 @@ from flask.views import MethodView
 
 class LogAPI(MethodView):
     def get(self):
-        with open('app.log') as f:
+        with open('app.log', encoding='utf-8') as f:
             log = f.readlines()
         log = list(map(lambda x: "<p>" + x + "</p>", log))
         # return jsonify({'code': 200, 'message': 'success',
