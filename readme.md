@@ -27,6 +27,8 @@ success:
 
 In this project we provide 5 main function to those who were graduated but didn't find a job so that they could get more information about how to find jobs in `China`.
 
+url: [http://47.112.108.202/](http://47.112.108.202/)
+
 1. job recommend
 
    We get more than 300000 jobs information and use these information to anlyse which job suits you.And provide comparison of horizontal and vertical.
@@ -76,3 +78,4 @@ In this project we provide 5 main function to those who were graduated but didn'
 > This is not only a platform you could get jobs information, but also a community of graduates. So we think friends system should be built.
 
 ![image](https://user-images.githubusercontent.com/94276865/186974537-43be2f55-1e7d-4306-916b-c0e32e986ccf.png)
+[bb](http://www.baidu.com)
