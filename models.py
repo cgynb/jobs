@@ -86,7 +86,8 @@ class MessageModel(db.Model):
 
 class JobsModel(db.Model):
     __tablename__ = 'jobdetail'
-    number = db.Column(db.Integer, primary_key=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    number = db.Column(db.Integer)
     job = db.Column(db.String(20))
     city = db.Column(db.String(15))
     salary = db.Column(db.String(15))

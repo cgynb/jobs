@@ -1,5 +1,6 @@
-from flask import request, jsonify, Response
+from flask import jsonify, Response
 from flask.views import MethodView
+import random
 from models import JobsModel
 import ast
 
@@ -7,8 +8,10 @@ import ast
 class LibraryAPI(MethodView):
     def get(self) -> Response:
         each_page: int = 20
-        page: int = int(request.args.get('page', default='1'))
-        jbs: list = JobsModel.query.filter().offset(each_page * (int(page) - 1)).limit(each_page).all()
+        # page: int = int(request.args.get('page', default='1'))
+        # jbs: list = JobsModel.query.filter().offset(each_page * (int(page) - 1)).limit(each_page).all()
+        # jbs: list = JobsModel.query.filter().order_by(func.rand()).limit(each_page).all()
+        jbs = [JobsModel.query.filter(JobsModel.id == random.randint(1, 333076)).first() for _ in range(each_page)]
         has_company: list = list()
         hasnt_company: list = list()
         for jb in jbs:
