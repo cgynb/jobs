@@ -71,7 +71,7 @@ class VoteAPI(MethodView):
         op3: str = request.form.get('op3')
         op4: str = request.form.get('op4')
         topic_id: str = 'topic-' + rand_str(6) + '-' + str(uuid.uuid4())
-        if Check(must=('op1', 'op2', 'op3', 'op4', 'topic_content'), args_dict=request.form).check() is False:
+        if Check(must=('op1', 'op2', 'topic_content'), args_dict=request.form).check() is False:
             return jsonify({'code': 400, 'message': 'params error'})
         try:
             topic: TopicModel = TopicModel(topic_id=topic_id, topic_content=topic_content, op1=op1, op2=op2, op3=op3, op4=op4)
