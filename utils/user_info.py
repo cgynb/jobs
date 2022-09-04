@@ -2,8 +2,8 @@ import typing as t
 import ast
 from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
-from qcloud_cos import CosConfig
-from qcloud_cos import CosS3Client
+from qcloud_cos.cos_client import CosConfig
+from qcloud_cos.cos_client import CosS3Client
 from models import UserModel
 from utils.log import Log
 

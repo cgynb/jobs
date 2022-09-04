@@ -4,7 +4,7 @@ import datetime
 import ast
 import os
 import typing as t
-from qcloud_cos import CosClientError, CosServiceError
+from qcloud_cos.cos_exception import CosClientError, CosServiceError
 from werkzeug.security import generate_password_hash
 from models import CaptchaModel, UserModel
 from exts import db

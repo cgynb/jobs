@@ -1,6 +1,3 @@
-import random
-from typing import Tuple
-
 from flask import jsonify, request, g, Response
 from flask.views import MethodView
 from sqlalchemy import and_
@@ -43,9 +40,11 @@ class VoteAPI(MethodView):
                     (select count(*) from vote where vote.topic_id = topic.topic_id and op = 3) as op3_count,
                     (select count(*) from vote where vote.topic_id = topic.topic_id and op = 4) as op4_count
                 from topic left join (select * from vote where vote.user_id="{g.user.user_id}") as v on v.topic_id = topic.topic_id
+                order by topic.id desc
                 limit :b, :t;
         """
         topics: list = list()
+        total_topic: int = TopicModel.query.filter().count()
         topics_obj: list = db.session.execute(sql, params={'b': each_page * (page - 1), 't': each_page * page}).fetchall()
         for t in topics_obj:
             indexes = ('topic_id', 'topic_content', 'op1', 'op2', 'op3', 'op4', 'choose',
@@ -57,8 +56,12 @@ class VoteAPI(MethodView):
             topic['options'].append({'name': topic.pop('op3'), 'count': topic.pop('op3_count')})
             topic['options'].append({'name': topic.pop('op4'), 'count': topic.pop('op4_count')})
             topics.append(topic)
-            random.shuffle(topics)  # 打乱投票列表
-        return jsonify({'code': 200, 'message': 'success', 'data': {'votes': topics}})
+        return jsonify({'code': 200, 'message': 'success',
+                        'data': {
+                            'votes': topics,
+                            'current_page': page,
+                            'total_page': total_topic // each_page + 1 if total_topic % each_page else total_topic // each_page
+                        }})
 
     @Limiter('user')
     def post(self):
